@@ -1,0 +1,29 @@
+[project]
+name = "nextbracket"
+version = "0.1.0"
+description = "PFA scoring and planning for Airmen"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# E/F: pycodestyle and pyflakes basics, I: import sorting, UP: modern syntax, B: common bugs
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets tests do `import app` without installing the project as a package.
+pythonpath = ["."]
