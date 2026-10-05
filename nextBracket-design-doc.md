@@ -81,7 +81,7 @@ One mainstream pick per layer; nothing niche.
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Language / packaging | Python 3.12, uv | Standard for AI work; uv is the current default package manager |
+| Language / packaging | Python 3.13, uv | Standard for AI work; uv is the current default package manager |
 | API | FastAPI + Pydantic v2 | Typed request/response schemas; the same models become tool schemas |
 | Agent | LangGraph | Most-requested agent framework; small explicit graph |
 | LLM access | LangChain chat model via OpenAI-compatible endpoint (Groq in prod, OpenRouter for model bake-offs) | Model-agnostic; swap providers with config |
@@ -100,25 +100,37 @@ Two data sources, both reference data that changes only when the Air Force publi
 
 ### 6.1 Scoring tables (versioned JSON)
 
-One file per standards version in `data/standards/`, e.g. `2026-xx-xx.json`. Events are defined by config, not code, so adding or renaming an event (run, shuttle, push-ups, sit-ups, alternatives) requires no code change.
+One file per standards version in `data/standards/`, named by effective date. The first is `2026-03-01.json`, from "Final USAF Physical Fitness Readiness Assessment Scoring (Effective 1 Mar 26)". Events are defined by config, not code, so adding or renaming an event requires no code change.
+
+The 2026 charts define 8 events in 4 components. Age bands are under 25, 25-29, 30-34, 35-39, 40-44, 45-49, 50-54, 55-59, and 60 and over.
+
+| Component | Max points | Events (unit) | Has a minimum? |
+| --- | --- | --- | --- |
+| Cardiorespiratory | 50 | 2-mile run (seconds, lower is better), 20m HAMR (shuttles) | Yes |
+| Body composition | 20 | WHtR (hundredths, lower is better) | No |
+| Muscular strength | 15 | push-up, hand-release push-up (reps) | Yes |
+| Core endurance | 15 | sit-up, cross-leg reverse crunch (reps), forearm plank (seconds, higher is better) | Yes |
+
+Example shape (values are real, from the push-up chart, male 25-29):
 
 ```json
 {
-  "version": "2026-xx-xx",
-  "effective_date": "2026-xx-xx",
-  "source": "DAFMAN 36-2905, Table x.x",
+  "version": "2026-03-01",
+  "effective_date": "2026-03-01",
+  "source": "PFRA Scoring Charts, effective 1 Mar 26",
   "passing_total": 75,
   "components": {
-    "cardio":   {"events": ["run", "shuttle"]},
-    "strength": {"events": ["pushups"]},
-    "core":     {"events": ["situps"]}
+    "cardio":    {"max_points": 50, "has_minimum": true,  "events": ["run", "hamr"]},
+    "body_comp": {"max_points": 20, "has_minimum": false, "events": ["whtr"]},
+    "strength":  {"max_points": 15, "has_minimum": true,  "events": ["pushups", "hand_release_pushups"]},
+    "core":      {"max_points": 15, "has_minimum": true,  "events": ["situps", "cross_leg_reverse_crunch", "plank"]}
   },
   "tables": [
     {
       "sex": "M", "age_min": 25, "age_max": 29, "event": "pushups",
       "unit": "reps", "higher_is_better": true,
-      "component_minimum": 30,
-      "brackets": [{"threshold": 67, "points": 20.0}, {"threshold": 66, "points": 19.5}]
+      "component_minimum": 28,
+      "brackets": [{"threshold": 63, "points": 15.0}, {"threshold": 62, "points": 14.5}]
     }
   ]
 }
@@ -126,17 +138,28 @@ One file per standards version in `data/standards/`, e.g. `2026-xx-xx.json`. Eve
 
 Rules:
 
-- Every value above (components, events, minimums, passing total) is a placeholder until verified against the current DAFMAN.
-- Units are integers: reps, or seconds for timed events. No string times in the data or the API.
-- Brackets form a step function. Scoring = find the bracket the result falls in.
+- Every value comes from the charts PDF through `scripts/extract_tables.py`, then is spot-checked by hand. Never type chart values by hand into the JSON.
+- Units are integers: reps, shuttles, or seconds for timed events. WHtR is stored in hundredths (0.49 becomes 49) so it stays an integer. No string times or floats in the data or the API.
+- Brackets form a step function. Scoring = find the bracket the result falls in. For higher-is-better events the result must be at least the threshold. For lower-is-better events it must be at most the threshold.
+- The `*` marks in the charts show the component minimum for each event, sex, and age band. It sits on the lowest scoring row (for push-ups that row is worth 2.5 points). A result below the minimum earns 0 and fails the component (para 3.7.4). The extractor must read the `*` from the PDF, not assume which row it is on.
+
+**Scoring rules from the regulation** (DAFMAN 36-2905 dated 24 Mar 2026, paras 3.6 to 3.10):
+
+- Composite is 0 to 100. Excellent is 90 or more, Satisfactory is 75 to 89.9, Unsatisfactory is 74.9 or less, or any component minimum not met (3.6.1, Table 3.3).
+- Meeting only the minimums does not reach 75 (3.7.4).
+- The 2km walk is pass/fail by age and sex (Table 3.1). It is for members medically barred from the run and HAMR. It earns no points and cannot produce an Excellent score (3.7.3).
+- BFA is pass/fail: 26% or less for men, 36% or less for women (Table 3.2).
+- Members with an exemption from a component are placed in PFRA Hold and are not scored (3.9, 3.10.6). Members with an ALC can test the approved modalities.
+- Open: the regulation text does not define a composite for a partially exempt member. See section 16.2.
 - A loader validates each file with Pydantic at startup: no gaps or overlaps in age bands, brackets monotonic, every event has a table for every sex and age band.
 - The newest version whose effective date is on or before today is the default. Older versions stay for reference.
 
 ### 6.2 Regulation corpus (pgvector)
 
-- Source: DAFMAN 36-2905 PDF, plus any official supplements the author chooses to include.
+- Source: DAFMAN 36-2905 (24 Mar 2026, 116 pages). v1 uses this document only. Supplements can be added later.
+- The local PDF is image-only (printed to PDF, no text layer), so it cannot be parsed as is. Plan: first look for the original e-Publishing PDF, which usually has text. If not, OCR it and review the output.
 - Chunk by paragraph number (e.g. 3.4.2), not by fixed token count. Each chunk stores `paragraph`, `title`, `text`, `source_doc`, `version`, `embedding`.
-- Exclude the scoring chart pages from the corpus. Chart questions go to `get_standards`, never RAG.
+- The point scoring charts are a separate document, not part of the DAFMAN, and are never in the corpus. Also exclude the body fat percent tables (Attachments 9 and 10). Chart questions go to `get_standards`, never RAG.
 - Retrieval: hybrid search (Postgres full-text + pgvector cosine), top 5.
 - Ingestion is a one-off script (`scripts/ingest_regulation.py`), rerun only when a new version is published.
 
@@ -345,6 +368,7 @@ next-bracket/
       config.py        # settings from env vars
       main.py
     data/standards/    # versioned scoring JSON
+    data/sources/      # official PDFs (charts committed; DAFMAN kept local, git-ignored)
     scripts/           # ingest_regulation.py, extract_tables.py
     tests/             # pytest: golden chart set, planner properties, API
     evals/             # dataset.jsonl, run_evals.py, results/
@@ -364,11 +388,12 @@ next-bracket/
 
 Eight milestones, each ending in something that works and can be demoed. Do not start a milestone until the previous one's tests pass.
 
+- [x] **M0. Setup:** `backend/` layout, uv, ruff, mypy, pytest, and CI on every push (moved up from M5).
 - [ ] **M1. Scoring core:** standards JSON (verified by hand against the PDF), Pydantic loader, `calculate_score`, golden chart tests at 100%.
 - [ ] **M2. Planning:** `plan_to_target` and `get_standards`, with property tests.
 - [ ] **M3. API:** FastAPI endpoints `/score`, `/plan`, `/standards`, `/health`, with tests and Dockerfile.
 - [ ] **M4. Frontend calculator:** Next.js form and live scoring against the local API.
-- [ ] **M5. First deploy:** Cloud Run + Vercel + CI pipeline. The calculator is live with no AI.
+- [ ] **M5. First deploy:** Cloud Run + Vercel + deploy workflow. The calculator is live with no AI.
 - [ ] **M6. RAG:** ingest DAFMAN into pgvector, `search_regulation`, retrieval recall@5 measured.
 - [ ] **M7. Agent:** LangGraph loop with all four tools, `/chat` streaming, chat panel, LangSmith tracing with hidden inputs, agent eval set and model bake-off.
 - [ ] **M8. Report and polish:** `/report` page, print stylesheet, URL-fragment sharing, feedback buttons, privacy copy, README with architecture and eval results.
@@ -387,9 +412,11 @@ Eight milestones, each ending in something that works and can be demoed. Do not 
 
 ### 16.2 Open questions (resolve before M1)
 
-- [ ] Which events and components are in the current standard (including any body composition or alternative events), and what are the exact component minimums and passing total?
-- [ ] What effective date and version label should the first standards file use?
-- [ ] Are scoring charts available as text in the PDF, or do they need manual transcription?
-- [ ] Which official documents besides DAFMAN 36-2905 go in the RAG corpus?
-- [ ] Which Groq (or OpenRouter) model is the starting default before the bake-off?
-- [ ] Domain and GitHub org for Next Bracket.
+- [x] Which events and components are in the current standard? Resolved: 8 events in 4 components (section 6.1). Passing total is 75. Component minimums are per event, sex, and age band, marked `*` in the charts.
+- [x] What effective date and version label should the first standards file use? Resolved: `2026-03-01`, from the charts header "Effective 1 Mar 26".
+- [x] Are scoring charts available as text in the PDF? Resolved: yes, the charts PDF has a text layer, so pdfplumber works. The DAFMAN PDF does not (section 6.2).
+- [x] Which official documents go in the RAG corpus? Resolved for v1: DAFMAN 36-2905 only.
+- [x] GitHub repo: `tomtranjr/nextBracket` (private for now). Domain is still open and not needed until M5.
+- [ ] How is the composite scored when a component is exempt or replaced? Paras 3.9 and 3.10 put exempt members in PFRA Hold and do not give a formula. Until this is answered, `calculate_score` scores only a full set of components and reports exempt components as "not scored". Decide before PR 7.
+- [ ] Which Groq (or OpenRouter) model is the starting default before the bake-off? Decide at the agent PRs.
+- [ ] Does the DAFMAN have a text-layer original on e-Publishing, or does it need OCR? Decide at the RAG PRs.
