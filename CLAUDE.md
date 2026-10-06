@@ -6,8 +6,6 @@ PFA scoring and planning for Airmen. A stateless web app: a calculator, a cited 
 
 If `_tmp/build-plan.md` exists, read it before starting work. It lists the PRs in order and their status. Update it when a PR starts or merges, and whenever we change the plan. Add a dated line to its Changes log.
 
-The user is learning. Work in small PRs: one branch per PR, a few small commits, then stop and explain what changed and why. The user reviews and merges. Naming rules for branches, commits, and PRs are in the user's global instructions.
-
 ## Principles
 
 1. The LLM never computes a score. All numbers come from tested Python functions.
