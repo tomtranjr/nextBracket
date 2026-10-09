@@ -1,6 +1,6 @@
 # Next Bracket
 
-PFA scoring and planning for Airmen. A stateless web app: a calculator, a cited policy chatbot, and a printable report. Full detail is in `nextBracket-design-doc.md`. This file is the short version.
+PFA scoring and planning for Airmen. A stateless web app: a calculator, a cited policy chatbot, and a printable report. This file is the short version of the project rules.
 
 ## Build plan
 
@@ -47,7 +47,7 @@ CI runs the same four checks on every push.
 - Never invent scoring values. If a value is unknown, leave a marked placeholder and a failing test, and flag it.
 - Chart values come from `scripts/extract_tables.py`, then are checked by hand against the PDF.
 - Keep `app/core/` free of I/O and LLM calls. Tools in `app/agent/` are thin wrappers around `core`.
-- Do not add dependencies outside the design doc (section 5) without asking. No new infrastructure.
+- Do not add new dependencies without asking. No new infrastructure.
 - Never log request bodies or user inputs. Never store user data.
 - Write tests with the code. Type hints everywhere. Ruff and mypy must pass.
 - Explain non-obvious decisions in short code comments.

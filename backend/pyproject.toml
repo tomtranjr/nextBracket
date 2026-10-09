@@ -3,7 +3,9 @@ name = "nextbracket"
 version = "0.1.0"
 description = "PFA scoring and planning for Airmen"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.13.5",
+]
 
 [dependency-groups]
 dev = [

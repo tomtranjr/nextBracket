@@ -33,5 +33,4 @@ uv run pytest
 
 ## Docs
 
-- `nextBracket-design-doc.md`: the full design
 - `CLAUDE.md`: short project rules for AI coding agents
