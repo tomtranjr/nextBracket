@@ -8,8 +8,10 @@ The output is NOT trusted until a person has checked it against the PDF. This sc
 removes typing; it does not prove the numbers are right. It fails loudly on anything odd
 (unknown cell, wrong table shape, broken ordering) instead of guessing.
 
-Only pages 1 to 8 are read. They hold the 8 events by age band and sex. The AFSPECWAR/EOD page and
-the 2 km walk page use other layouts and are out of scope here.
+Pages 1 to 8 hold the 8 events by age band and sex. Page 10 is the AFSPECWAR/EOD chart. It has one
+column per event and no sex or age. It is not copied. It is checked against the male under-25
+tables, and the JSON records that those tables apply (`afspecwar_eod`). The 2 km walk page uses
+another layout and is out of scope here.
 """
 
 import argparse
@@ -71,20 +73,36 @@ PAGES: tuple[EventPage, ...] = (
     EventPage("hamr_20m", "shuttles", True, "20-METER HAMR"),
 )
 
+# AFSPECWAR/EOD chart (page 10). One column per event: (points column, value column, unit, text
+# that must appear in the column header). Strength and core share points column 0, cardio uses 7.
+AFSPECWAR_PAGE_INDEX = 9
+AFSPECWAR_TITLE = "AFSPECWAR/EOD"
+AFSPECWAR_FIRST_DATA_ROW = 3
+AFSPECWAR_COLUMNS: dict[str, tuple[int, int, str, str]] = {
+    "push_up": (0, 1, "reps", "Push-up"),
+    "hand_release_push_up": (0, 2, "reps", "Hand Release"),
+    "sit_up": (0, 4, "reps", "Sit-up"),
+    "cross_leg_reverse_crunch": (0, 5, "reps", "Reverse Crunch"),
+    "forearm_plank": (0, 6, "seconds", "Forearm Plank"),
+    "run_2mile": (7, 8, "seconds", "2 Mile Run"),
+    "hamr_20m": (7, 9, "shuttles", "HAMR"),
+}
+
 # AFSPECWAR/EOD members score on the male under-25 tables for every event on their chart page
 # (all but WHtR). The mapping lives in the JSON so a future chart can change it with data only.
 AFSPECWAR_EOD: dict[str, Any] = {
     "sex": "M",
     "age_min": 0,
-    "events": [
-        "push_up",
-        "hand_release_push_up",
-        "sit_up",
-        "cross_leg_reverse_crunch",
-        "forearm_plank",
-        "run_2mile",
-        "hamr_20m",
-    ],
+    "events": list(AFSPECWAR_COLUMNS),
+}
+
+# The AFSPECWAR/EOD chart equals the male under-25 tables except for one cell: the 2 mile run at
+# 39.0 points prints 17:16 (1036 s) there and 17:13 (1033 s) in the main table. 17:13 fits the
+# 19 s step of its column. Decision: use the main table. Confirm the true value with the source.
+# The check fails if the PDF stops showing this difference, so the entry cannot go stale.
+# Key: (event, points). Value: (AFSPECWAR threshold, main table threshold).
+KNOWN_AFSPECWAR_DIFFS: dict[tuple[str, float], tuple[int, int]] = {
+    ("run_2mile", 39.0): (1036, 1033),
 }
 
 # The printed chart has one tie: push-up, male, 30-34 prints 26 for both 3.0 and 2.5 points. The
@@ -238,6 +256,79 @@ def extract_event_tables(rows: list[list[str | None]], spec: EventPage) -> list[
     return out
 
 
+@dataclass(frozen=True)
+class AfspecwarColumn:
+    brackets: list[tuple[int, float]]
+    minimum: int | None
+
+
+def extract_afspecwar_columns(rows: list[list[str | None]]) -> dict[str, AfspecwarColumn]:
+    """Read the AFSPECWAR/EOD page table into one column of brackets per event."""
+    out: dict[str, AfspecwarColumn] = {}
+    for event, (points_col, value_col, unit, header) in AFSPECWAR_COLUMNS.items():
+        if header not in (rows[AGE_ROW][value_col] or ""):
+            raise ValueError(f"{event}: column {value_col} header is not {header!r}")
+        brackets: list[tuple[int, float]] = []
+        minimum: int | None = None
+        for row in rows[AFSPECWAR_FIRST_DATA_ROW:]:
+            if not row[points_col] and not row[value_col]:
+                continue  # the cardio columns are shorter than the strength and core columns
+            cell = parse_cell(row[value_col], unit)
+            if cell.is_minimum:
+                if minimum is not None:
+                    raise ValueError(f"{event}: more than one * row")
+                minimum = cell.threshold
+            brackets.append((cell.threshold, _points(row[points_col])))
+        out[event] = AfspecwarColumn(brackets, minimum)
+    return out
+
+
+def check_afspecwar_matches(
+    columns: dict[str, AfspecwarColumn], tables: list[dict[str, Any]]
+) -> None:
+    """Raise unless every AFSPECWAR/EOD column equals the table the mapping points to.
+
+    The only difference allowed is the one in `KNOWN_AFSPECWAR_DIFFS`.
+    """
+    mapped = AFSPECWAR_EOD
+    seen: set[tuple[str, float]] = set()
+    for event, column in columns.items():
+        (table,) = (
+            t
+            for t in tables
+            if t["event"] == event
+            and t["sex"] == mapped["sex"]
+            and t["age_min"] == mapped["age_min"]
+        )
+        main = [(b["threshold"], b["points"]) for b in table["brackets"]]
+        if len(main) != len(column.brackets):
+            raise ValueError(
+                f"{event}: AFSPECWAR/EOD has {len(column.brackets)} rows, not {len(main)}"
+            )
+        if column.minimum != table["component_minimum"]:
+            raise ValueError(
+                f"{event}: AFSPECWAR/EOD minimum {column.minimum} differs from "
+                f"{table['component_minimum']}"
+            )
+        for (afs_threshold, afs_points), (threshold, points) in zip(
+            column.brackets, main, strict=True
+        ):
+            if afs_points != points:
+                raise ValueError(f"{event}: point rows differ ({afs_points} vs {points})")
+            if afs_threshold == threshold:
+                continue
+            key = (event, points)
+            if KNOWN_AFSPECWAR_DIFFS.get(key) != (afs_threshold, threshold):
+                raise ValueError(
+                    f"{event} at {points} points: AFSPECWAR/EOD has {afs_threshold}, "
+                    f"main table has {threshold}"
+                )
+            seen.add(key)
+    stale = set(KNOWN_AFSPECWAR_DIFFS) - seen
+    if stale:
+        raise ValueError(f"KNOWN_AFSPECWAR_DIFFS no longer match the PDF: {sorted(stale)}")
+
+
 def extract_standards(pdf_path: Path) -> StandardsFile:
     tables: list[dict[str, Any]] = []
     with pdfplumber.open(pdf_path) as pdf:
@@ -249,6 +340,13 @@ def extract_standards(pdf_path: Path) -> StandardsFile:
             if len(found) != 1:
                 raise ValueError(f"{spec.event}: expected 1 table, found {len(found)}")
             tables.extend(extract_event_tables(found[0], spec))
+        afspecwar_page = pdf.pages[AFSPECWAR_PAGE_INDEX]
+        if AFSPECWAR_TITLE not in (afspecwar_page.extract_text() or ""):
+            raise ValueError(f"page {AFSPECWAR_PAGE_INDEX + 1} is not the AFSPECWAR/EOD chart")
+        found = afspecwar_page.extract_tables()
+        if len(found) != 1:
+            raise ValueError(f"AFSPECWAR/EOD: expected 1 table, found {len(found)}")
+        check_afspecwar_matches(extract_afspecwar_columns(found[0]), tables)
     # Building the model runs every structural check from the schema.
     return StandardsFile.model_validate(
         {

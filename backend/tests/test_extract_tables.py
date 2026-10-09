@@ -4,14 +4,23 @@ The spot-check numbers below were read by hand from `PFRA Scoring Charts.pdf`, n
 extractor, so they check the extractor instead of repeating it.
 """
 
+from typing import Any
+
+import pdfplumber
 import pytest
 
 from app.core.standards import parse_standards
 from app.models import EventTable, StandardsFile
+from scripts import extract_tables
 from scripts.extract_tables import (
+    AFSPECWAR_COLUMNS,
+    AFSPECWAR_PAGE_INDEX,
     DEFAULT_OUT,
     DEFAULT_PDF,
     PAGES,
+    AfspecwarColumn,
+    check_afspecwar_matches,
+    extract_afspecwar_columns,
     extract_event_tables,
     extract_standards,
     parse_age_band,
@@ -182,3 +191,91 @@ def test_push_up_tie_override_keeps_printed_minimum(committed: StandardsFile) ->
 )
 def test_push_up_m_30_34_has_a_2_5_point_row(committed: StandardsFile) -> None:
     assert _table(committed, "push_up", "M", 30).brackets[-1].points == 2.5
+
+
+def test_committed_json_maps_afspecwar_eod_to_male_under_25(committed: StandardsFile) -> None:
+    mapping = committed.afspecwar_eod
+    assert (mapping.sex, mapping.age_min) == ("M", 0)
+    assert mapping.events == list(AFSPECWAR_COLUMNS)
+    assert "whtr" not in mapping.events  # WHtR is not on the AFSPECWAR/EOD chart
+
+
+def test_afspecwar_page_columns_read_from_the_pdf() -> None:
+    with pdfplumber.open(DEFAULT_PDF) as pdf:
+        (rows,) = pdf.pages[AFSPECWAR_PAGE_INDEX].extract_tables()
+    columns = extract_afspecwar_columns(rows)
+    assert set(columns) == set(AFSPECWAR_COLUMNS)
+    run = columns["run_2mile"]
+    assert (run.brackets[0], run.brackets[-1], run.minimum) == ((805, 50.0), (1185, 35.0), 1185)
+    assert (39.0, 1036) in [(points, threshold) for threshold, points in run.brackets]
+    assert columns["push_up"].minimum == 30
+    assert len(columns["push_up"].brackets) == 26
+
+
+def _main_table() -> list[dict[str, Any]]:
+    brackets = [(30, 15.0), (20, 10.0), (10, 5.0)]
+    return [
+        {
+            "event": "push_up",
+            "sex": "M",
+            "age_min": 0,
+            "component_minimum": 10,
+            "brackets": [{"threshold": t, "points": p} for t, p in brackets],
+        }
+    ]
+
+
+def _afspecwar(
+    brackets: list[tuple[int, float]] | None = None, minimum: int | None = 10
+) -> dict[str, AfspecwarColumn]:
+    return {"push_up": AfspecwarColumn(brackets or [(30, 15.0), (20, 10.0), (10, 5.0)], minimum)}
+
+
+@pytest.fixture
+def no_known_diffs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(extract_tables, "KNOWN_AFSPECWAR_DIFFS", {})
+
+
+def test_afspecwar_check_passes_when_columns_match(no_known_diffs: None) -> None:
+    check_afspecwar_matches(_afspecwar(), _main_table())
+
+
+def test_afspecwar_check_rejects_an_unexpected_difference(no_known_diffs: None) -> None:
+    with pytest.raises(ValueError, match="AFSPECWAR/EOD has 21"):
+        check_afspecwar_matches(_afspecwar([(30, 15.0), (21, 10.0), (10, 5.0)]), _main_table())
+
+
+def test_afspecwar_check_rejects_a_different_minimum(no_known_diffs: None) -> None:
+    with pytest.raises(ValueError, match="minimum"):
+        check_afspecwar_matches(_afspecwar(minimum=20), _main_table())
+
+
+def test_afspecwar_check_rejects_a_different_row_count(no_known_diffs: None) -> None:
+    with pytest.raises(ValueError, match="rows"):
+        check_afspecwar_matches(_afspecwar([(30, 15.0), (20, 10.0)]), _main_table())
+
+
+def test_afspecwar_check_allows_a_listed_difference(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(extract_tables, "KNOWN_AFSPECWAR_DIFFS", {("push_up", 5.0): (9, 10)})
+    check_afspecwar_matches(
+        _afspecwar([(30, 15.0), (20, 10.0), (9, 5.0)], minimum=10), _main_table()
+    )
+
+
+def test_afspecwar_check_rejects_a_stale_listed_difference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(extract_tables, "KNOWN_AFSPECWAR_DIFFS", {("push_up", 5.0): (9, 10)})
+    with pytest.raises(ValueError, match="no longer match"):
+        check_afspecwar_matches(_afspecwar(), _main_table())
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="The AFSPECWAR/EOD chart prints 17:16 (1036 s) for the 2 mile run at 39.0 points. The "
+    "main male under-25 table prints 17:13 (1033 s) and is used. Remove this test once the "
+    "correct value is confirmed.",
+)
+def test_run_39_points_agrees_across_both_charts(committed: StandardsFile) -> None:
+    run = _table(committed, "run_2mile", "M", 0)
+    assert next(b.threshold for b in run.brackets if b.points == 39.0) == 1036
