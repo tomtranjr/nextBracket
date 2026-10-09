@@ -53,5 +53,6 @@ def standards_dict() -> dict[str, Any]:
             "strength": {"max_points": 15, "has_minimum": True, "events": ["pushups"]},
             "body_comp": {"max_points": 20, "has_minimum": False, "events": ["whtr"]},
         },
+        "afspecwar_eod": {"sex": "M", "age_min": 0, "events": ["pushups"]},
         "tables": tables,
     }

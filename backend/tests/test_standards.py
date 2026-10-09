@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from app.core.standards import parse_standards
+from app.core.standards import find_table, parse_standards
 
 Edit = Callable[[dict[str, Any]], None]
 
@@ -174,3 +174,66 @@ def test_parsed_file_is_frozen(standards_dict: dict[str, Any]) -> None:
     standards = parse_standards(json.dumps(standards_dict))
     with pytest.raises(ValidationError):
         standards.passing_total = 60
+
+
+def test_rejects_afspecwar_eod_unknown_event(standards_dict: dict[str, Any]) -> None:
+    standards_dict["afspecwar_eod"]["events"] = ["pushups", "burpees"]
+    with pytest.raises(ValidationError, match="unknown event"):
+        _parse(standards_dict)
+
+
+@pytest.mark.parametrize(("mapped_age", "age_min", "age_max"), [(10, 0, 29), (99, 30, None)])
+def test_accepts_afspecwar_eod_age_within_a_table_band(
+    standards_dict: dict[str, Any], mapped_age: int, age_min: int, age_max: int | None
+) -> None:
+    standards_dict["afspecwar_eod"]["age_min"] = mapped_age
+    standards = parse_standards(json.dumps(standards_dict))
+    table = find_table(standards, "pushups", "F", 40, is_afspecwar_eod=True)
+    assert (table.sex, table.age_min, table.age_max) == ("M", age_min, age_max)
+
+
+def test_rejects_missing_afspecwar_eod(standards_dict: dict[str, Any]) -> None:
+    del standards_dict["afspecwar_eod"]
+    with pytest.raises(ValidationError):
+        _parse(standards_dict)
+
+
+@pytest.mark.parametrize(
+    ("age", "age_min", "age_max"),
+    [(0, 0, 29), (29, 0, 29), (30, 30, None), (75, 30, None)],
+)
+def test_find_table_picks_the_band_for_the_age(
+    standards_dict: dict[str, Any], age: int, age_min: int, age_max: int | None
+) -> None:
+    table = find_table(parse_standards(json.dumps(standards_dict)), "pushups", "F", age)
+    assert (table.sex, table.age_min, table.age_max) == ("F", age_min, age_max)
+
+
+def test_find_table_afspecwar_eod_uses_the_mapped_band(standards_dict: dict[str, Any]) -> None:
+    standards = parse_standards(json.dumps(standards_dict))
+    table = find_table(standards, "pushups", "F", 40, is_afspecwar_eod=True)
+    assert (table.sex, table.age_min) == ("M", 0)
+
+
+def test_find_table_afspecwar_eod_ignores_events_not_listed(
+    standards_dict: dict[str, Any],
+) -> None:
+    # WHtR is not on the AFSPECWAR/EOD page, so it keeps the member's own sex and age.
+    standards = parse_standards(json.dumps(standards_dict))
+    table = find_table(standards, "whtr", "F", 40, is_afspecwar_eod=True)
+    assert (table.sex, table.age_min) == ("F", 30)
+
+
+def test_find_table_default_ignores_the_mapping(standards_dict: dict[str, Any]) -> None:
+    standards = parse_standards(json.dumps(standards_dict))
+    assert find_table(standards, "pushups", "F", 40).sex == "F"
+
+
+def test_find_table_rejects_unknown_event_and_negative_age(
+    standards_dict: dict[str, Any],
+) -> None:
+    standards = parse_standards(json.dumps(standards_dict))
+    with pytest.raises(ValueError, match="unknown event"):
+        find_table(standards, "burpees", "M", 30)
+    with pytest.raises(ValueError, match="negative"):
+        find_table(standards, "pushups", "M", -1)

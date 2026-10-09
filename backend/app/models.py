@@ -80,6 +80,18 @@ class EventTable(_Strict):
         return self
 
 
+class AfspecwarEod(_Strict):
+    """Members in AFSPECWAR/EOD use this sex and age band's tables for the listed events.
+
+    The charts print one AFSPECWAR/EOD column per event, with no sex or age. Those columns equal
+    the male under-25 tables, so the file points at that band instead of copying 7 more tables.
+    """
+
+    sex: Sex
+    age_min: int = Field(ge=0)
+    events: list[str] = Field(min_length=1)
+
+
 class StandardsFile(_Strict):
     """One versioned set of scoring charts, e.g. `data/standards/2026-03-01.json`."""
 
@@ -88,6 +100,7 @@ class StandardsFile(_Strict):
     source: str = Field(min_length=1)
     passing_total: int = Field(gt=0)
     components: dict[str, Component] = Field(min_length=1)
+    afspecwar_eod: AfspecwarEod
     tables: list[EventTable] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -95,6 +108,7 @@ class StandardsFile(_Strict):
         event_to_component = self._map_events_to_components()
         self._check_tables_match_components(event_to_component)
         self._check_age_bands(event_to_component)
+        self._check_afspecwar_eod(event_to_component)
         return self
 
     def _map_events_to_components(self) -> dict[str, str]:
@@ -138,6 +152,22 @@ class StandardsFile(_Strict):
                     reference = bands
                 elif bands != reference:
                     raise ValueError(f"{event} {sex}: age bands {bands} differ from {reference}")
+
+    def _check_afspecwar_eod(self, event_to_component: dict[str, str]) -> None:
+        mapping = self.afspecwar_eod
+        for event in mapping.events:
+            if event not in event_to_component:
+                raise ValueError(f"afspecwar_eod lists unknown event {event!r}")
+            if not any(
+                t.event == event
+                and t.sex == mapping.sex
+                and t.age_min <= mapping.age_min
+                and (t.age_max is None or mapping.age_min <= t.age_max)
+                for t in self.tables
+            ):
+                raise ValueError(
+                    f"afspecwar_eod: no table for {event} {mapping.sex} age {mapping.age_min}"
+                )
 
     @staticmethod
     def _check_contiguous(event: str, sex: Sex, bands: list[tuple[int, int | None]]) -> None:
