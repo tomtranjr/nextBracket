@@ -182,3 +182,49 @@ class StandardsFile(_Strict):
                 )
         if bands[-1][1] is not None:
             raise ValueError(f"{event} {sex}: last age band must be open-ended")
+
+
+class Profile(_Strict):
+    age: int = Field(ge=17, le=70)
+    sex: Sex
+    # True: the 7 non-WHtR events use the male under-25 tables (see `AfspecwarEod`).
+    is_afspecwar_eod: bool = False
+
+
+class Results(_Strict):
+    """Raw results by event: reps, shuttles, or seconds. WHtR is in hundredths (0.49 is 49)."""
+
+    # A member takes one event per component, so most keys are absent.
+    values: dict[str, int] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_values(self) -> Self:
+        for event, value in self.values.items():
+            if value < 0:
+                raise ValueError(f"{event}: result must not be negative: {value}")
+        return self
+
+
+Category = Literal["excellent", "satisfactory", "unsatisfactory"]
+
+
+class ComponentScore(_Strict):
+    component: str
+    event: str
+    result: int
+    points: float
+    max_points: int
+    # None when the component has no minimum (body composition).
+    minimum_met: bool | None
+
+
+class ScoreReport(_Strict):
+    version: str
+    effective_date: date
+    components: list[ComponentScore]
+    # Components with no result. With any of these, there is no total and no category.
+    not_scored: list[str]
+    total: float | None
+    category: Category | None
+    # Events whose result is below the component minimum.
+    missed_minimums: list[str]
