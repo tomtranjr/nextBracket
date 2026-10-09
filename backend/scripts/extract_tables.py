@@ -106,9 +106,9 @@ KNOWN_AFSPECWAR_DIFFS: dict[tuple[str, float], tuple[int, int]] = {
 }
 
 # The printed chart has one tie: push-up, male, 30-34 prints 26 for both 3.0 and 2.5 points. The
-# schema forbids ties, and we must not guess the intended number. Decision: keep the 3.0 row, drop
-# the unreachable 2.5 row, and keep the minimum at 26 as printed. Confirm the true value with the
-# source. The extractor fails if the PDF stops showing this tie, so the override cannot go stale.
+# schema forbids ties. Decision (follow the printed table): keep the 3.0 row, drop the 2.5 row, and
+# keep the minimum at 26 as printed. The 2.5 row is unreachable, so scores are the same as with
+# both rows. The extractor fails if the PDF stops showing this tie, so the override cannot go stale.
 KNOWN_TIES: frozenset[tuple[str, str, int]] = frozenset({("push_up", "M", 30)})
 
 # Table layout: rows 0-1 are titles, row 2 the age bands, row 3 the sexes, then the data rows.
