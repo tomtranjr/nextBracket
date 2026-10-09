@@ -37,6 +37,19 @@
       ]
     }
   },
+  "afspecwar_eod": {
+    "sex": "M",
+    "age_min": 0,
+    "events": [
+      "push_up",
+      "hand_release_push_up",
+      "sit_up",
+      "cross_leg_reverse_crunch",
+      "forearm_plank",
+      "run_2mile",
+      "hamr_20m"
+    ]
+  },
   "tables": [
     {
       "sex": "M",

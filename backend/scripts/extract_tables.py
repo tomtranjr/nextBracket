@@ -71,6 +71,22 @@ PAGES: tuple[EventPage, ...] = (
     EventPage("hamr_20m", "shuttles", True, "20-METER HAMR"),
 )
 
+# AFSPECWAR/EOD members score on the male under-25 tables for every event on their chart page
+# (all but WHtR). The mapping lives in the JSON so a future chart can change it with data only.
+AFSPECWAR_EOD: dict[str, Any] = {
+    "sex": "M",
+    "age_min": 0,
+    "events": [
+        "push_up",
+        "hand_release_push_up",
+        "sit_up",
+        "cross_leg_reverse_crunch",
+        "forearm_plank",
+        "run_2mile",
+        "hamr_20m",
+    ],
+}
+
 # The printed chart has one tie: push-up, male, 30-34 prints 26 for both 3.0 and 2.5 points. The
 # schema forbids ties, and we must not guess the intended number. Decision: keep the 3.0 row, drop
 # the unreachable 2.5 row, and keep the minimum at 26 as printed. Confirm the true value with the
@@ -241,6 +257,7 @@ def extract_standards(pdf_path: Path) -> StandardsFile:
             "source": SOURCE,
             "passing_total": PASSING_TOTAL,
             "components": COMPONENTS,
+            "afspecwar_eod": AFSPECWAR_EOD,
             "tables": tables,
         }
     )
