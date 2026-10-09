@@ -176,21 +176,13 @@ def test_run_has_uneven_point_steps(committed: StandardsFile) -> None:
     assert len(points) == 21
 
 
-def test_push_up_tie_override_keeps_printed_minimum(committed: StandardsFile) -> None:
-    # The PDF prints 26 for both 3.0 and 2.5 points (M, 30-34). We keep the 3.0 row and the
-    # printed minimum. See KNOWN_TIES in the script.
+def test_push_up_tie_follows_the_printed_table(committed: StandardsFile) -> None:
+    # The PDF prints 26 for both 3.0 and 2.5 points (M, 30-34). We follow the table: 26 or more
+    # earns 3.0, and the 2.5 row can never be the best row met, so it is not stored. The printed
+    # minimum stays 26. See KNOWN_TIES in the script.
     table = _table(committed, "push_up", "M", 30)
     assert table.component_minimum == 26
     assert (table.brackets[-1].threshold, table.brackets[-1].points) == (26, 3.0)
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Source PDF prints 26 for both 3.0 and 2.5 points (push-up M 30-34). "
-    "Remove this test once the correct 2.5 row is confirmed and added.",
-)
-def test_push_up_m_30_34_has_a_2_5_point_row(committed: StandardsFile) -> None:
-    assert _table(committed, "push_up", "M", 30).brackets[-1].points == 2.5
 
 
 def test_committed_json_maps_afspecwar_eod_to_male_under_25(committed: StandardsFile) -> None:
