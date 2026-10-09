@@ -159,11 +159,14 @@ class StandardsFile(_Strict):
             if event not in event_to_component:
                 raise ValueError(f"afspecwar_eod lists unknown event {event!r}")
             if not any(
-                t.event == event and t.sex == mapping.sex and t.age_min == mapping.age_min
+                t.event == event
+                and t.sex == mapping.sex
+                and t.age_min <= mapping.age_min
+                and (t.age_max is None or mapping.age_min <= t.age_max)
                 for t in self.tables
             ):
                 raise ValueError(
-                    f"afspecwar_eod: no table for {event} {mapping.sex} age_min {mapping.age_min}"
+                    f"afspecwar_eod: no table for {event} {mapping.sex} age {mapping.age_min}"
                 )
 
     @staticmethod

@@ -182,10 +182,14 @@ def test_rejects_afspecwar_eod_unknown_event(standards_dict: dict[str, Any]) -> 
         _parse(standards_dict)
 
 
-def test_rejects_afspecwar_eod_band_without_table(standards_dict: dict[str, Any]) -> None:
-    standards_dict["afspecwar_eod"]["age_min"] = 99
-    with pytest.raises(ValidationError, match="no table"):
-        _parse(standards_dict)
+@pytest.mark.parametrize(("mapped_age", "age_min", "age_max"), [(10, 0, 29), (99, 30, None)])
+def test_accepts_afspecwar_eod_age_within_a_table_band(
+    standards_dict: dict[str, Any], mapped_age: int, age_min: int, age_max: int | None
+) -> None:
+    standards_dict["afspecwar_eod"]["age_min"] = mapped_age
+    standards = parse_standards(json.dumps(standards_dict))
+    table = find_table(standards, "pushups", "F", 40, is_afspecwar_eod=True)
+    assert (table.sex, table.age_min, table.age_max) == ("M", age_min, age_max)
 
 
 def test_rejects_missing_afspecwar_eod(standards_dict: dict[str, Any]) -> None:
