@@ -266,14 +266,16 @@ class EventChange(_Strict):
 
 
 class PlanOption(_Strict):
-    """One way to reach the target. Later PRs add more `kind` values."""
+    """One way to reach the target."""
 
-    kind: Literal["single_event"]
+    kind: Literal["single_event", "quick_wins", "balanced"]
     changes: list[EventChange]
     projected_total: float
 
 
-PlanStatus = Literal["already_met", "options", "no_single_event_option", "impossible"]
+# A reachable target always has an option: raising every event to its best bracket reaches the
+# best total, so the quick-wins walk cannot get stuck.
+PlanStatus = Literal["already_met", "options", "impossible"]
 
 
 class PlanResult(_Strict):
