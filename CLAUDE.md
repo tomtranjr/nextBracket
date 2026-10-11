@@ -38,6 +38,7 @@ uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app tests
 uv run pytest
+uv run uvicorn app.main:app --reload   # run the API locally
 ```
 
 CI runs the same four checks on every push.

@@ -85,3 +85,12 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy app tests
 uv run pytest
 ```
+
+## Run the API
+
+```
+cd backend
+uv run uvicorn app.main:app --reload
+```
+
+Open `http://localhost:8000/docs` to try `/health`, `/versions`, and `/score`.
