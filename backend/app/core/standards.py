@@ -1,6 +1,29 @@
 """Parse and look up standards. Pure: callers read the file and pass the text in."""
 
+from collections.abc import Sequence
+from datetime import date
+
 from app.models import EventTable, Sex, StandardsFile
+
+
+def pick_standards(
+    files: Sequence[StandardsFile], today: date, version: str | None = None
+) -> StandardsFile:
+    """Choose one standards file. The API layer loads the files and passes them in.
+
+    With `version`, return that exact file. Without it, return the file with the newest
+    `effective_date` on or before `today`, so a chart that is not yet in force is never used.
+    Raises `ValueError` for an unknown version, or when no file is in force yet.
+    """
+    if version is not None:
+        for standards in files:
+            if standards.version == version:
+                return standards
+        raise ValueError(f"unknown standards version: {version!r}")
+    in_force = [s for s in files if s.effective_date <= today]
+    if not in_force:
+        raise ValueError(f"no standards in force on {today}")
+    return max(in_force, key=lambda s: s.effective_date)
 
 
 def parse_standards(raw: str | bytes) -> StandardsFile:

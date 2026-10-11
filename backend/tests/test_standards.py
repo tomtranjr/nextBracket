@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from app.core.standards import find_table, parse_standards
+from app.core.standards import find_table, parse_standards, pick_standards
 
 Edit = Callable[[dict[str, Any]], None]
 
@@ -237,3 +237,44 @@ def test_find_table_rejects_unknown_event_and_negative_age(
         find_table(standards, "burpees", "M", 30)
     with pytest.raises(ValueError, match="negative"):
         find_table(standards, "pushups", "M", -1)
+
+
+def _file(data: dict[str, Any], version: str, effective: str) -> Any:
+    return parse_standards(json.dumps({**data, "version": version, "effective_date": effective}))
+
+
+def test_pick_standards_by_version(standards_dict: dict[str, Any]) -> None:
+    files = [_file(standards_dict, "a", "2026-01-01"), _file(standards_dict, "b", "2026-06-01")]
+    assert pick_standards(files, date(2026, 3, 1), "b").version == "b"
+
+
+def test_pick_standards_unknown_version(standards_dict: dict[str, Any]) -> None:
+    files = [_file(standards_dict, "a", "2026-01-01")]
+    with pytest.raises(ValueError, match="unknown standards version"):
+        pick_standards(files, date(2026, 3, 1), "nope")
+
+
+def test_pick_standards_default_is_newest_in_force(standards_dict: dict[str, Any]) -> None:
+    files = [
+        _file(standards_dict, "old", "2025-01-01"),
+        _file(standards_dict, "current", "2026-01-01"),
+        _file(standards_dict, "future", "2027-01-01"),
+    ]
+    assert pick_standards(files, date(2026, 3, 1)).version == "current"
+
+
+def test_pick_standards_default_on_effective_date(standards_dict: dict[str, Any]) -> None:
+    files = [_file(standards_dict, "a", "2026-03-01")]
+    assert pick_standards(files, date(2026, 3, 1)).version == "a"
+
+
+def test_pick_standards_nothing_in_force(standards_dict: dict[str, Any]) -> None:
+    files = [_file(standards_dict, "future", "2027-01-01")]
+    with pytest.raises(ValueError, match="no standards in force"):
+        pick_standards(files, date(2026, 3, 1))
+
+
+def test_pick_standards_explicit_version_may_be_future(standards_dict: dict[str, Any]) -> None:
+    # An explicit version is the caller's choice, so the date does not block it.
+    files = [_file(standards_dict, "future", "2027-01-01")]
+    assert pick_standards(files, date(2026, 3, 1), "future").version == "future"
