@@ -247,3 +247,46 @@ class StandardsTable(_Strict):
     effective_date: date
     passing_total: int
     components: list[ComponentStandards]
+
+
+class EventChange(_Strict):
+    """One event that must improve, with the exact distance to travel."""
+
+    component: str
+    event: str
+    unit: str
+    # None when the member gave no result for this component. The plan then starts from the
+    # component minimum, so there is no real starting result to report.
+    from_result: int | None
+    to_result: int
+    # `to_result - from_result`: negative when lower is better (seconds to cut from a run).
+    delta: int | None
+    from_points: float
+    to_points: float
+
+
+class PlanOption(_Strict):
+    """One way to reach the target. Later PRs add more `kind` values."""
+
+    kind: Literal["single_event"]
+    changes: list[EventChange]
+    projected_total: float
+
+
+PlanStatus = Literal["already_met", "options", "no_single_event_option", "impossible"]
+
+
+class PlanResult(_Strict):
+    """The answer to "what do I need to reach this total?". An impossible target is a status."""
+
+    version: str
+    effective_date: date
+    target: float
+    status: PlanStatus
+    # Total with the given results. Components without a result are assumed at their minimum.
+    current_total: float
+    # The best total possible with the events in play. Above this, the target is impossible.
+    max_total: float
+    # Components with no result, planned from their minimum (body composition counts as 0 points).
+    assumed_components: list[str]
+    options: list[PlanOption]
