@@ -49,12 +49,10 @@ def categorize(total: float, passing_total: int, minimums_missed: bool) -> Categ
     return "excellent" if total >= EXCELLENT_TOTAL else "satisfactory"
 
 
-def calculate_score(standards: StandardsFile, profile: Profile, results: Results) -> ScoreReport:
-    """Score `results` for `profile`.
+def events_by_component(standards: StandardsFile, results: Results) -> dict[str, str]:
+    """Map each component to the event the member took. Raises `ValueError` on bad input.
 
-    A member takes one event per component. If a component has no result, the report lists it in
-    `not_scored` and gives no total, because the regulation has no formula for a partial set
-    (design doc 16.2). Raises `ValueError` for an unknown event or two events in one component.
+    Bad input is an unknown event, or two events for one component.
     """
     event_to_component = {
         event: name for name, comp in standards.components.items() for event in comp.events
@@ -67,6 +65,17 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
         if name in by_component:
             raise ValueError(f"two events for {name!r}: {by_component[name]!r} and {event!r}")
         by_component[name] = event
+    return by_component
+
+
+def calculate_score(standards: StandardsFile, profile: Profile, results: Results) -> ScoreReport:
+    """Score `results` for `profile`.
+
+    A member takes one event per component. If a component has no result, the report lists it in
+    `not_scored` and gives no total, because the regulation has no formula for a partial set
+    (design doc 16.2). Raises `ValueError` for an unknown event or two events in one component.
+    """
+    by_component = events_by_component(standards, results)
 
     scores: list[ComponentScore] = []
     not_scored: list[str] = []
