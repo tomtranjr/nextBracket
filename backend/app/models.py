@@ -292,3 +292,22 @@ class PlanResult(_Strict):
     # Components with no result, planned from their minimum (body composition counts as 0 points).
     assumed_components: list[str]
     options: list[PlanOption]
+
+
+class ScoreRequest(_Strict):
+    profile: Profile
+    results: Results
+    # None: the API picks the newest standards in force today.
+    version: str | None = None
+
+
+class VersionInfo(_Strict):
+    version: str
+    effective_date: date
+    source: str
+
+
+class VersionsResponse(_Strict):
+    # The version `/score` uses when the request names none.
+    default: str
+    versions: list[VersionInfo]
