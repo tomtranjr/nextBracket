@@ -228,3 +228,22 @@ class ScoreReport(_Strict):
     category: Category | None
     # Events whose result is below the component minimum.
     missed_minimums: list[str]
+
+
+class ComponentStandards(_Strict):
+    """One component with the chart tables a member may choose from (run or shuttle)."""
+
+    component: str
+    max_points: int
+    has_minimum: bool
+    # One table per alternative event, in the order the standards file lists them.
+    tables: list[EventTable]
+
+
+class StandardsTable(_Strict):
+    """The charts that apply to one profile. Returned by `get_standards`."""
+
+    version: str
+    effective_date: date
+    passing_total: int
+    components: list[ComponentStandards]
