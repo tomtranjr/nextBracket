@@ -1,0 +1,14 @@
+# Local stack. API only for now. Postgres with pgvector joins in PR 22.
+services:
+  api:
+    build: ./backend
+    ports:
+      # Host 8000 matches the README examples. The container listens on 8080 like Cloud Run.
+      - "8000:8080"
+    healthcheck:
+      # The slim image has no curl, so use the Python that is already there.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s

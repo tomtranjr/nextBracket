@@ -57,7 +57,9 @@ Done:
 - The API serves `/health`, `/versions`, `/score`, `/plan`, and `/standards`.
 - CI runs lint, types, and 274 automated tests on every push.
 
-Next: a Docker image, the website, and a first public release.
+The API runs in a Docker image, locally with `docker compose`.
+
+Next: the website and a first public release.
 
 Later: the policy chat, the printable report, and the 2 km walk and body fat checks.
 
@@ -141,7 +143,8 @@ Events by component:
 | API | Python 3.13, FastAPI, Pydantic | built |
 | Calculator | Pure Python functions and versioned scoring tables (JSON) | built |
 | Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
-| Container and hosting | Docker, Google Cloud Run | planned |
+| Container | Docker, Docker Compose | built |
+| Hosting | Google Cloud Run | planned |
 | Website | Next.js, TypeScript, Tailwind, on Vercel | planned |
 | Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
@@ -171,6 +174,14 @@ uv run uvicorn app.main:app --reload
 The server listens on `http://localhost:8000`. Open `http://localhost:8000/docs` for the interactive API docs.
 
 To use a different folder of standards files, set `NEXTBRACKET_STANDARDS_DIR`.
+
+### Run with Docker
+
+```
+docker compose up --build
+```
+
+The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
 
 ## API reference
 
