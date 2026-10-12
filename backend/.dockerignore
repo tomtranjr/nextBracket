@@ -5,7 +5,10 @@
 **/__pycache__
 **/*.py[oc]
 
+# `COPY . /app` in the Dockerfile takes everything not listed here.
 # Not needed at runtime. data/sources holds the large source PDFs.
 tests
 scripts
 data/sources
+Dockerfile
+.dockerignore
