@@ -90,7 +90,7 @@ flowchart LR
     D --> Q[Answer with<br/>paragraph number]
 ```
 
-Only `backend/` exists so far.
+The website lives in `frontend/`. The backend lives in `backend/`.
 
 ```
 backend/
@@ -112,9 +112,15 @@ backend/
     sources/        the official charts PDF
   scripts/          extract_tables.py turns the charts PDF into JSON
   tests/
+frontend/           Next.js site
+  app/              routes and layout
+  lib/
+    api.ts            typed client for the API
+    types.ts          request and response types, copied by hand from models.py
+    time.ts           mm:ss to seconds, same rules as timeparse.py
 ```
 
-The website, policy search, and chat agent are not built yet. They will live in `frontend/`, `app/rag/`, and `app/agent/`.
+The calculator form, policy search, and chat agent are not built yet. The form goes in `frontend/`. Search and chat go in `app/rag/` and `app/agent/`.
 
 ## How it works
 
@@ -145,7 +151,7 @@ Events by component:
 | Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
 | Container | Docker, Docker Compose | built |
 | Hosting | Google Cloud Run | planned |
-| Website | Next.js, TypeScript, Tailwind, on Vercel | planned |
+| Website | Next.js, TypeScript, Tailwind, on Vercel | scaffolded |
 | Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
 | Evals and tracing | agent evals, LangSmith | planned |
@@ -182,6 +188,26 @@ docker compose up --build
 ```
 
 The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
+
+## Run the website
+
+You need Node (see `frontend/.nvmrc`) and the API running on `http://localhost:8000`.
+
+```
+cd frontend
+npm ci
+npm run dev
+```
+
+The site listens on `http://localhost:3000`. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
+
+Checks for the website:
+
+```
+npm run lint && npm run typecheck && npm test && npm run build
+```
+
+`frontend/lib/types.ts` is written by hand. When a model in `backend/app/models.py` changes, change the matching type there too.
 
 ## API reference
 

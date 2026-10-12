@@ -53,3 +53,27 @@ jobs:
           echo "API did not become healthy"
           docker logs api
           exit 1
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Node version comes from frontend/.nvmrc, so CI matches local.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # npm ci installs exactly what package-lock.json says and fails if it is out of date.
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

@@ -26,10 +26,12 @@ backend/
   data/sources/   official PDFs (charts committed, DAFMAN git-ignored)
   scripts/        extraction and ingestion scripts
   tests/  evals/
-frontend/         Next.js (later)
+frontend/         Next.js, TypeScript, Tailwind
+  app/            routes and layout (App Router)
+  lib/            API client, API types, time parsing
 ```
 
-Only `backend/` exists so far. Check the build plan for what is built.
+Check the build plan for what is built.
 
 ## Commands (run in `backend/`)
 
@@ -41,7 +43,15 @@ uv run pytest
 uv run uvicorn app.main:app --reload   # run the API locally
 ```
 
-CI runs the same four checks on every push.
+Frontend commands (run in `frontend/`, Node version in `.nvmrc`):
+
+```
+npm ci
+npm run lint && npm run typecheck && npm test && npm run build
+npm run dev                            # run the site locally
+```
+
+CI runs these checks on every push: the four backend checks, the Docker smoke test, and the frontend checks.
 
 ## Rules
 
@@ -53,4 +63,6 @@ CI runs the same four checks on every push.
 - Write tests with the code. Type hints everywhere. Ruff and mypy must pass.
 - Explain non-obvious decisions in short code comments.
 - Units are integers: reps, shuttles, seconds. WHtR is stored in hundredths.
-- Python 3.13, managed with uv.
+- Python 3.13, managed with uv. Frontend packages are managed with npm.
+- `frontend/lib/types.ts` mirrors `backend/app/models.py` by hand. Change both together.
+- `NEXT_PUBLIC_*` values reach the browser. Never put a secret in one.
