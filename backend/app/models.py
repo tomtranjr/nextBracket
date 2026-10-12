@@ -301,6 +301,23 @@ class ScoreRequest(_Strict):
     version: str | None = None
 
 
+class PlanRequest(_Strict):
+    profile: Profile
+    # Composite points, 0 to 100. A target above the best possible total is not an input error:
+    # the plan answers it with the `impossible` status.
+    target: float = Field(ge=0, le=100)
+    # None: plan from the component minimums (see `PlanResult.assumed_components`).
+    current: Results | None = None
+    version: str | None = None
+
+
+class StandardsRequest(_Strict):
+    profile: Profile
+    # None: every event. Set: only that event, inside its component.
+    event: str | None = None
+    version: str | None = None
+
+
 class VersionInfo(_Strict):
     version: str
     effective_date: date
