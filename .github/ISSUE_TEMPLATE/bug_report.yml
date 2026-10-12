@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a wrong score, a bug, or an unclear doc.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include your name, rank, unit, or medical details.
+  - type: textarea
+    id: what
+    attributes:
+      label: What is broken
+      description: One or two sentences about the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: What you entered, what you got, and what you expected.
+      placeholder: "Age 27, M, 45 push-ups. Got 8.5 points. The chart says 9.0."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The steps or the curl command that show the problem.
+    validations:
+      required: false
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Calculator
+        - Planner
+        - API
+        - Docs
+        - Other
+    validations:
+      required: true
