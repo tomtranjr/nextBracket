@@ -59,11 +59,18 @@ export function createApiClient(
 ) {
   const root = baseUrl.replace(/\/+$/, "");
 
-  async function request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  async function request<T>(
+    method: "GET" | "POST",
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    // An aborted call rejects with the browser's own `AbortError`, not an `ApiError`.
     const response = await fetchFn(`${root}${path}`, {
       method,
       headers: body === undefined ? undefined : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     });
     if (!response.ok) {
       const fallback = `HTTP ${response.status}`;
@@ -81,7 +88,9 @@ export function createApiClient(
   return {
     health: () => request<{ status: string }>("GET", "/health"),
     versions: () => request<VersionsResponse>("GET", "/versions"),
-    score: (body: ScoreRequest) => request<ScoreReport>("POST", "/score", body),
+    // `signal` lets the live form cancel a request that a newer keystroke has replaced.
+    score: (body: ScoreRequest, signal?: AbortSignal) =>
+      request<ScoreReport>("POST", "/score", body, signal),
     plan: (body: PlanRequest) => request<PlanResult>("POST", "/plan", body),
     standards: (body: StandardsRequest) => request<StandardsTable>("POST", "/standards", body),
   };
