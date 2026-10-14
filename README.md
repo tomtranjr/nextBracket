@@ -51,15 +51,16 @@ Developers can use the API today. See the [developer guide](#developer-guide).
 
 Done:
 
+- The website has a live calculator. It scores as you type.
 - The official charts are turned into data and checked by hand against the PDF.
 - The calculator scores all 8 events, every age band, and AFSPECWAR/EOD.
 - The target planner gives three kinds of options: one event, quick wins, and balanced.
 - The API serves `/health`, `/versions`, `/score`, `/plan`, and `/standards`.
-- CI runs lint, types, and 274 automated tests on every push.
+- CI runs lint, type checks, and the backend and website tests on every push.
 
 The API runs in a Docker image, locally with `docker compose`.
 
-Next: the website and a first public release.
+Next: the target planner on the website and a first public release.
 
 Later: the policy chat, the printable report, and the 2 km walk and body fat checks.
 
@@ -181,6 +182,12 @@ The server listens on `http://localhost:8000`. Open `http://localhost:8000/docs`
 
 To use a different folder of standards files, set `NEXTBRACKET_STANDARDS_DIR`.
 
+A browser may call the API only from the sites in `NEXTBRACKET_CORS_ORIGINS`. The value is a JSON list. The default is `["http://localhost:3000"]`, the local website.
+
+```
+NEXTBRACKET_CORS_ORIGINS='["https://example.app"]' uv run uvicorn app.main:app
+```
+
 ### Run with Docker
 
 ```
@@ -199,7 +206,7 @@ npm ci
 npm run dev
 ```
 
-The site listens on `http://localhost:3000`. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
+The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes the ratio, or waist and height in inches. The site rounds the ratio half up to two decimals, and says so on screen. The charts do not state this rule, so it is unconfirmed. Age and sex start blank on purpose, and the site stores nothing. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
 
 Checks for the website:
 

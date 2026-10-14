@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     # Default is resolved from this file, so it works from any working directory.
     standards_dir: Path = Path(__file__).parents[1] / "data" / "standards"
 
+    # Browser origins allowed to call the API. Set as a JSON list, for example
+    # NEXTBRACKET_CORS_ORIGINS='["https://example.app"]'. The default is the local dev site.
+    # The deploy PR sets the real site here.
+    cors_origins: list[str] = ["http://localhost:3000"]
+
 
 @lru_cache
 def get_settings() -> Settings:

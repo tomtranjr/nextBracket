@@ -73,6 +73,31 @@ describe("createApiClient", () => {
     expect(await createApiClient("http://api.test", fetchFn).score(scoreRequest)).toEqual(report);
   });
 
+  it("passes the abort signal to fetch", async () => {
+    const { calls, fetchFn } = stubFetch(json({ total: 80 }));
+    const controller = new AbortController();
+    await createApiClient("http://api.test", fetchFn).score(scoreRequest, controller.signal);
+
+    expect(calls[0].init?.signal).toBe(controller.signal);
+  });
+
+  it("rejects with AbortError, not ApiError, when the signal aborts", async () => {
+    // Like a real fetch: reject with the signal's reason once it aborts.
+    const fetchFn: typeof fetch = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    const controller = new AbortController();
+    const pending = createApiClient("http://api.test", fetchFn)
+      .score(scoreRequest, controller.signal)
+      .catch((err: unknown) => err);
+    controller.abort();
+
+    const error = await pending;
+    expect(error).not.toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ name: "AbortError" });
+  });
+
   it("drops trailing slashes from the base URL", async () => {
     const { calls, fetchFn } = stubFetch(json({ status: "ok" }));
     await createApiClient("http://api.test//", fetchFn).health();
