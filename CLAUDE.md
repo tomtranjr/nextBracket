@@ -65,4 +65,5 @@ CI runs these checks on every push: the four backend checks, the Docker smoke te
 - Units are integers: reps, shuttles, seconds. WHtR is stored in hundredths.
 - Python 3.13, managed with uv. Frontend packages are managed with npm.
 - `frontend/lib/types.ts` mirrors `backend/app/models.py` by hand. Change both together.
+- `frontend/lib/events.ts` mirrors the event keys in `backend/data/standards/` by hand. A Vitest test checks it.
 - `NEXT_PUBLIC_*` values reach the browser. Never put a secret in one.
