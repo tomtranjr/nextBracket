@@ -181,6 +181,12 @@ The server listens on `http://localhost:8000`. Open `http://localhost:8000/docs`
 
 To use a different folder of standards files, set `NEXTBRACKET_STANDARDS_DIR`.
 
+A browser may call the API only from the sites in `NEXTBRACKET_CORS_ORIGINS`. The value is a JSON list. The default is `["http://localhost:3000"]`, the local website.
+
+```
+NEXTBRACKET_CORS_ORIGINS='["https://example.app"]' uv run uvicorn app.main:app
+```
+
 ### Run with Docker
 
 ```
