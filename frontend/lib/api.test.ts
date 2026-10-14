@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ApiError, createApiClient } from "@/lib/api";
+import { ApiError, createApiClient, errorMessage } from "@/lib/api";
 import type { ScoreRequest } from "@/lib/types";
 
 interface Call {
@@ -150,5 +150,17 @@ describe("errors", () => {
     const error = await failure(json({ message: "nope" }, 500));
 
     expect(error.detail).toBe("HTTP 500");
+  });
+});
+
+describe("errorMessage", () => {
+  it("shows the detail of a 422", () => {
+    expect(errorMessage(new ApiError(422, "age must be 17 to 70"))).toBe("age must be 17 to 70");
+  });
+
+  it("says the service did not answer for any other failure", () => {
+    const text = "Cannot reach the scoring service. Try again in a moment.";
+    expect(errorMessage(new ApiError(500, "HTTP 500"))).toBe(text);
+    expect(errorMessage(new TypeError("Failed to fetch"))).toBe(text);
   });
 });

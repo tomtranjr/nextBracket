@@ -26,6 +26,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Text for a failed call. A 422 detail is written for a person. Anything else means no answer. */
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError && error.status === 422
+    ? error.detail
+    : "Cannot reach the scoring service. Try again in a moment.";
+}
+
 interface FieldError {
   loc?: unknown[];
   msg?: string;

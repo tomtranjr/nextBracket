@@ -1,5 +1,6 @@
-import { ApiError } from "@/lib/api";
+import { errorMessage } from "@/lib/api";
 import { COMPONENTS, findEvent } from "@/lib/events";
+import { formatPoints as points } from "@/lib/format";
 import type { ScoreReport } from "@/lib/types";
 
 interface Props {
@@ -9,17 +10,7 @@ interface Props {
   pending: boolean;
 }
 
-// Points can be halves (87.5). Show a decimal only when there is one.
-const points = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
-
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-function errorMessage(error: unknown): string {
-  // A 422 detail is written for a person. Anything else means the API did not answer.
-  return error instanceof ApiError && error.status === 422
-    ? error.detail
-    : "Cannot reach the scoring service. Try again in a moment.";
-}
 
 export function ScoreResult({ report, error, pending }: Props) {
   return (
