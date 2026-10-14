@@ -5,8 +5,14 @@ import { useEffect, useId, useState } from "react";
 import { ScoreResult } from "@/components/ScoreResult";
 import { api } from "@/lib/api";
 import { COMPONENTS, type ComponentInfo } from "@/lib/events";
-import { buildScoreRequest, initialFormState, MAX_AGE, MIN_AGE } from "@/lib/score-form";
-import type { FormState } from "@/lib/score-form";
+import {
+  buildScoreRequest,
+  formatRatio,
+  initialFormState,
+  MAX_AGE,
+  MIN_AGE,
+} from "@/lib/score-form";
+import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
 import type { ScoreReport, ScoreRequest, Sex } from "@/lib/types";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
@@ -25,7 +31,7 @@ export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
   const [answer, setAnswer] = useState<Answer | null>(null);
 
-  const { request, errors } = buildScoreRequest(state);
+  const { request, errors, whtr } = buildScoreRequest(state);
   // The key is a string, so the debounce and the effect compare by value, not by identity.
   // An edit and its undo give the same key, so they send no new request.
   const key = request === null ? null : JSON.stringify(request);
@@ -95,7 +101,27 @@ export function Calculator() {
           </label>
         </fieldset>
 
-        {COMPONENTS.map((component) => (
+        {COMPONENTS.map((component) =>
+          component.key === "body_comp" ? (
+            <BodyCompFields
+              key={component.key}
+              component={component}
+              state={state.whtr}
+              ratioText={state.components.body_comp.text}
+              errors={errors}
+              whtr={whtr}
+              onMode={(mode) =>
+                // The two ways to enter it do not share values, so a switch starts clean.
+                update((s) => {
+                  s.whtr = { mode, waist: "", height: "" };
+                  s.components.body_comp.text = "";
+                })
+              }
+              onRatio={(text) => update((s) => void (s.components.body_comp.text = text))}
+              onWaist={(waist) => update((s) => void (s.whtr.waist = waist))}
+              onHeight={(height) => update((s) => void (s.whtr.height = height))}
+            />
+          ) : (
           <ComponentFields
             key={component.key}
             component={component}
@@ -108,7 +134,8 @@ export function Calculator() {
             }
             onText={(text) => update((s) => void (s.components[component.key].text = text))}
           />
-        ))}
+          ),
+        )}
       </form>
 
       <ScoreResult
@@ -165,6 +192,87 @@ function ComponentFields({
         error={error}
         onChange={onText}
       />
+    </fieldset>
+  );
+}
+
+interface BodyCompFieldsProps {
+  component: ComponentInfo;
+  state: FormState["whtr"];
+  ratioText: string;
+  errors: Record<string, string>;
+  whtr: WhtrFromInches | null;
+  onMode: (mode: WhtrMode) => void;
+  onRatio: (text: string) => void;
+  onWaist: (text: string) => void;
+  onHeight: (text: string) => void;
+}
+
+// Body composition is one event (WHtR) with two ways to enter it: the ratio, or waist and height.
+function BodyCompFields({
+  component,
+  state,
+  ratioText,
+  errors,
+  whtr,
+  onMode,
+  onRatio,
+  onWaist,
+  onHeight,
+}: BodyCompFieldsProps) {
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="mb-2 text-lg font-semibold">
+        {component.label}{" "}
+        <span className="font-normal text-zinc-600 dark:text-zinc-400">
+          ({component.max_points} points)
+        </span>
+      </legend>
+      <RadioGroup
+        legend="Enter"
+        name="whtr-mode"
+        options={[
+          { value: "ratio", label: "Ratio" },
+          { value: "measurements", label: "Waist and height" },
+        ]}
+        value={state.mode}
+        onChange={(mode) => onMode(mode as WhtrMode)}
+      />
+      {state.mode === "ratio" ? (
+        <TextField
+          label="Waist-to-height ratio"
+          inputMode="decimal"
+          placeholder="0.50"
+          value={ratioText}
+          error={errors.body_comp}
+          onChange={onRatio}
+        />
+      ) : (
+        <>
+          <TextField
+            label="Waist (inches)"
+            inputMode="decimal"
+            placeholder="32.5"
+            value={state.waist}
+            error={errors.waist}
+            onChange={onWaist}
+          />
+          <TextField
+            label="Height (inches)"
+            inputMode="decimal"
+            placeholder="66"
+            value={state.height}
+            error={errors.height}
+            onChange={onHeight}
+          />
+          {whtr !== null && (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Ratio {whtr.exact.toFixed(4)}, scored as {formatRatio(whtr.hundredths)}. The ratio is
+              rounded to two decimals. DAFMAN has not confirmed this rule yet.
+            </p>
+          )}
+        </>
+      )}
     </fieldset>
   );
 }

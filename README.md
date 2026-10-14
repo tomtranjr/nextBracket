@@ -206,7 +206,7 @@ npm ci
 npm run dev
 ```
 
-The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Age and sex start blank on purpose, and the site stores nothing. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
+The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes the ratio, or waist and height in inches. The site rounds the ratio half up to two decimals, and says so on screen. The charts do not state this rule, so it is unconfirmed. Age and sex start blank on purpose, and the site stores nothing. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
 
 Checks for the website:
 
