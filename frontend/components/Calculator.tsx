@@ -1,8 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 
+import { Planner } from "@/components/Planner";
 import { ScoreResult } from "@/components/ScoreResult";
+import { TextField } from "@/components/TextField";
 import { api } from "@/lib/api";
 import { COMPONENTS, type ComponentInfo } from "@/lib/events";
 import {
@@ -22,15 +24,11 @@ const DEBOUNCE_MS = 300;
 const scoreCall = (key: string, signal: AbortSignal) =>
   api.score(JSON.parse(key) as ScoreRequest, signal);
 
-const INPUT =
-  "min-h-11 w-full rounded-md border bg-transparent px-3 text-base " +
-  "border-zinc-300 dark:border-zinc-700";
-const INPUT_BAD = "border-red-600 dark:border-red-400";
-
 export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
 
-  const { request, errors, whtr } = buildScoreRequest(state);
+  const built = buildScoreRequest(state);
+  const { request, errors, whtr } = built;
   // The key is a string, so the debounce and the effect compare by value, not by identity.
   const key = request === null ? null : JSON.stringify(request);
   const { value: report, error, pending } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
@@ -120,6 +118,7 @@ export function Calculator() {
       </form>
 
       <ScoreResult report={report} error={error} pending={pending} />
+      <Planner state={state} built={built} />
     </div>
   );
 }
@@ -251,44 +250,6 @@ function BodyCompFields({
         </>
       )}
     </fieldset>
-  );
-}
-
-interface TextFieldProps {
-  label: string;
-  inputMode: "numeric" | "decimal";
-  placeholder: string;
-  value: string;
-  error: string | undefined;
-  onChange: (text: string) => void;
-}
-
-// type="text", not "number": a number input takes "e" and "-" and changes on scroll. The
-// parsers in lib/score-form.ts do the checking.
-function TextField({ label, inputMode, placeholder, value, error, onChange }: TextFieldProps) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        type="text"
-        inputMode={inputMode}
-        autoComplete="off"
-        placeholder={placeholder}
-        value={value}
-        aria-invalid={error !== undefined}
-        aria-describedby={error === undefined ? undefined : errorId}
-        className={`${INPUT} ${error === undefined ? "" : INPUT_BAD}`}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {error !== undefined && (
-        <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 

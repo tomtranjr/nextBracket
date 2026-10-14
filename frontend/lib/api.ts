@@ -98,7 +98,8 @@ export function createApiClient(
     // `signal` lets the live form cancel a request that a newer keystroke has replaced.
     score: (body: ScoreRequest, signal?: AbortSignal) =>
       request<ScoreReport>("POST", "/score", body, signal),
-    plan: (body: PlanRequest) => request<PlanResult>("POST", "/plan", body),
+    plan: (body: PlanRequest, signal?: AbortSignal) =>
+      request<PlanResult>("POST", "/plan", body, signal),
     standards: (body: StandardsRequest) => request<StandardsTable>("POST", "/standards", body),
   };
 }
