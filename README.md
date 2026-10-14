@@ -56,7 +56,7 @@ Done:
 - The calculator scores all 8 events, every age band, and AFSPECWAR/EOD.
 - The target planner gives three kinds of options: one event, quick wins, and balanced.
 - The API serves `/health`, `/versions`, `/score`, `/plan`, and `/standards`.
-- CI runs lint, types, and 280 backend tests and 85 website tests on every push.
+- CI runs lint, type checks, and the backend and website tests on every push.
 
 The API runs in a Docker image, locally with `docker compose`.
 
