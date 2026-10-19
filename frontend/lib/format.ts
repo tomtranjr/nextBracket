@@ -59,5 +59,5 @@ export function minimumNote(
   }
   // A miss always has a gap. Fall back to no gap text rather than invent one.
   const by = scored.minimum_gap === null ? "" : ` by ${formatResult(kind, scored.minimum_gap)}`;
-  return { met: false, text: `Below minimum ${minimum}${by}` };
+  return { met: false, text: `Minimum ${minimum} missed${by}` };
 }

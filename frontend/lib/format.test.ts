@@ -40,13 +40,13 @@ describe("minimumNote", () => {
     const scored = { minimum_met: false, minimum: 1195, minimum_gap: 20 };
     expect(minimumNote("time", scored)).toEqual({
       met: false,
-      text: "Below minimum 19:55 by 0:20",
+      text: "Minimum 19:55 missed by 0:20",
     });
   });
 
   it("shows the gap in reps", () => {
     const scored = { minimum_met: false, minimum: 28, minimum_gap: 3 };
-    expect(minimumNote("reps", scored)).toEqual({ met: false, text: "Below minimum 28 by 3" });
+    expect(minimumNote("reps", scored)).toEqual({ met: false, text: "Minimum 28 missed by 3" });
   });
 
   it("returns null when there is no minimum", () => {
