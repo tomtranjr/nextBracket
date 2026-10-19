@@ -109,6 +109,7 @@ backend/
     api/
       routes.py       the HTTP endpoints
       deps.py         the only place that reads files and the clock
+      ratelimit.py    in-memory rate limit (per client and global)
   data/
     standards/      versioned scoring JSON (2026-03-01.json)
     sources/        the official charts PDF
@@ -188,6 +189,12 @@ A browser may call the API only from the sites in `NEXTBRACKET_CORS_ORIGINS`. Th
 ```
 NEXTBRACKET_CORS_ORIGINS='["https://example.app"]' uv run uvicorn app.main:app
 ```
+
+### Rate limit
+
+The API limits requests to protect against floods and runaway cost. Each client address gets 60 requests a minute, and all clients together get 600. Past a limit, the API answers `429` with a `Retry-After` header (seconds to wait). `/health` is never limited. Set `NEXTBRACKET_RATE_LIMIT_PER_IP` and `NEXTBRACKET_RATE_LIMIT_GLOBAL` to change the limits, and use `0` to turn one off.
+
+The counters live in memory, so they are exact only while one process serves all traffic. Cloud Run is set to a single instance for this reason. The limiter reads the client address from the last `X-Forwarded-For` entry, which Cloud Run sets. It keeps no address after the minute ends.
 
 ### Run with Docker
 

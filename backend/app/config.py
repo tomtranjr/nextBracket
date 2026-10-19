@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     # The deploy PR sets the real site here.
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # Requests per minute. They cap cost on the public API: one client address, and all
+    # clients together. 0 turns a limit off. The counters live in memory, so they are exact only
+    # while Cloud Run runs a single instance.
+    rate_limit_per_ip: int = 60
+    rate_limit_global: int = 600
+
 
 @lru_cache
 def get_settings() -> Settings:
