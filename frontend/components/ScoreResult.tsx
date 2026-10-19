@@ -1,6 +1,6 @@
 import { errorMessage } from "@/lib/api";
 import { COMPONENTS, findEvent } from "@/lib/events";
-import { formatPoints as points } from "@/lib/format";
+import { formatPoints as points, minimumNote } from "@/lib/format";
 import type { ScoreReport } from "@/lib/types";
 
 interface Props {
@@ -59,6 +59,9 @@ function Report({ report }: { report: ScoreReport }) {
       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {COMPONENTS.map((component) => {
           const scored = report.components.find((c) => c.component === component.key);
+          const event = scored === undefined ? undefined : findEvent(scored.event);
+          const note =
+            scored === undefined || event === undefined ? null : minimumNote(event.kind, scored);
           return (
             <li key={component.key} className="flex items-baseline justify-between gap-3 py-2">
               <span>
@@ -73,10 +76,19 @@ function Report({ report }: { report: ScoreReport }) {
                 <span className="text-zinc-600 dark:text-zinc-400">Not entered</span>
               ) : (
                 <span className="text-right">
-                  {points(scored.points)} / {scored.max_points}
-                  {scored.minimum_met === false && (
-                    <span className="block text-sm font-medium text-red-700 dark:text-red-400">
-                      Minimum missed
+                  <span className="inline-flex items-center gap-1.5">
+                    {points(scored.points)} / {scored.max_points}
+                    {note !== null && <MinimumIcon met={note.met} />}
+                  </span>
+                  {note !== null && (
+                    <span
+                      className={`block text-sm font-medium ${
+                        note.met
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-red-700 dark:text-red-400"
+                      }`}
+                    >
+                      {note.text}
                     </span>
                   )}
                 </span>
@@ -90,5 +102,23 @@ function Report({ report }: { report: ScoreReport }) {
         Charts effective {report.effective_date}
       </p>
     </div>
+  );
+}
+
+/** Decorative: the text under the points says the same thing, so color is never the only cue. */
+function MinimumIcon({ met }: { met: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className={`h-4 w-4 ${met ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {met ? <path d="M4 10.5l4 4 8-9" /> : <path d="M5 5l10 10M15 5L5 15" />}
+    </svg>
   );
 }
