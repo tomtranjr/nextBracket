@@ -66,6 +66,23 @@ def test_partial_results_have_no_total(client: TestClient) -> None:
     assert set(body["not_scored"]) == {"strength", "core", "body_comp"}
 
 
+def test_score_reports_minimum_and_gap(client: TestClient) -> None:
+    # 27 M push-up minimum is 28 reps, so 25 misses it by 3. WHtR has no minimum.
+    body = _score(client, results={"values": {"push_up": 25, "whtr": 49}}).json()
+    push_up, whtr = body["components"]
+    assert (push_up["minimum_met"], push_up["minimum"], push_up["minimum_gap"]) == (False, 28, 3)
+    assert (whtr["minimum"], whtr["minimum_gap"]) == (None, None)
+
+
+def test_score_reports_full_points_gap(client: TestClient) -> None:
+    # WHtR is a ratio in hundredths: 49 earns full points, 52 is 3 over, 62 earns 0 and is 13 over.
+    for whtr, gap, points in [(49, None, 20.0), (52, 3, 17.0), (62, 13, 0.0)]:
+        body = _score(client, results={"values": {"whtr": whtr}}).json()
+        (comp,) = body["components"]
+        got = (comp["points"], comp["full_points_at"], comp["full_points_gap"])
+        assert got == (points, 49, gap)
+
+
 def test_score_response_parses_as_report(client: TestClient) -> None:
     # JSON mode, because strict models do not accept a date string in Python mode.
     ScoreReport.model_validate_json(_score(client).text)

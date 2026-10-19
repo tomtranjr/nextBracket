@@ -25,6 +25,14 @@ export interface ComponentScore {
   max_points: number;
   // null when the component has no minimum (body composition).
   minimum_met: boolean | null;
+  // The chart minimum in the same units as `result`. null when there is no minimum.
+  minimum: number | null;
+  // Distance from the minimum on a miss. null when met or no minimum.
+  minimum_gap: number | null;
+  // The top chart row (full points), in the same units as `result`.
+  full_points_at: number;
+  // Distance from the top row. null when the result already earns full points.
+  full_points_gap: number | null;
 }
 
 export interface ScoreReport {

@@ -216,6 +216,14 @@ class ComponentScore(_Strict):
     max_points: int
     # None when the component has no minimum (body composition).
     minimum_met: bool | None
+    # The `*` row from the chart, in the same units as `result`. None when there is no minimum.
+    minimum: int | None
+    # How far `result` is from `minimum` on a miss, in the same units. None when met or no minimum.
+    minimum_gap: int | None
+    # The top row from the chart (full points), in the same units as `result`.
+    full_points_at: int
+    # How far `result` is from `full_points_at`. None when the result already earns full points.
+    full_points_gap: int | None
 
 
 class ScoreReport(_Strict):

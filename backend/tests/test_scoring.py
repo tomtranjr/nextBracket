@@ -3,7 +3,14 @@ from typing import Any
 
 import pytest
 
-from app.core.scoring import calculate_score, categorize, find_bracket, score_event
+from app.core.scoring import (
+    calculate_score,
+    categorize,
+    find_bracket,
+    full_points_gap,
+    minimum_gap,
+    score_event,
+)
 from app.core.standards import find_table, parse_standards
 from app.models import EventTable, Profile, Results, StandardsFile
 
@@ -62,6 +69,44 @@ def test_no_minimum_reports_none(standards: StandardsFile) -> None:
     assert score_event(_table(standards, "whtr"), 50) == (10.0, None)
     # Worse than the last row earns 0 but fails nothing.
     assert score_event(_table(standards, "whtr"), 70) == (0.0, None)
+
+
+def test_minimum_gap_on_a_miss(standards: StandardsFile) -> None:
+    assert minimum_gap(_table(standards, "pushups"), 7) == 3
+    assert minimum_gap(_table(standards, "pushups"), 0) == 10
+
+
+def test_minimum_gap_is_none_when_met(standards: StandardsFile) -> None:
+    assert minimum_gap(_table(standards, "pushups"), 10) is None
+    assert minimum_gap(_table(standards, "pushups"), 25) is None
+
+
+def test_minimum_gap_is_none_with_no_minimum(standards: StandardsFile) -> None:
+    assert minimum_gap(_table(standards, "whtr"), 70) is None
+
+
+def test_full_points_gap_is_none_at_the_top_row(standards: StandardsFile) -> None:
+    assert full_points_gap(_table(standards, "pushups"), 30) is None
+    assert full_points_gap(_table(standards, "pushups"), 40) is None
+    assert full_points_gap(_table(standards, "whtr"), 45) is None
+    assert full_points_gap(_table(standards, "whtr"), 40) is None
+
+
+def test_full_points_gap_counts_from_the_top_row(standards: StandardsFile) -> None:
+    # Higher is better, then lower is better. A miss of the minimum still has a gap.
+    assert full_points_gap(_table(standards, "pushups"), 29) == 1
+    assert full_points_gap(_table(standards, "pushups"), 0) == 30
+    assert full_points_gap(_table(standards, "whtr"), 46) == 1
+    assert full_points_gap(_table(standards, "whtr"), 70) == 25
+
+
+def test_report_has_minimum_and_gap(standards: StandardsFile) -> None:
+    report = calculate_score(standards, _profile(), Results(values={"pushups": 7, "whtr": 48}))
+    pushups, whtr = report.components
+    assert (pushups.minimum, pushups.minimum_gap) == (10, 3)
+    assert (whtr.minimum, whtr.minimum_gap) == (None, None)
+    assert (pushups.full_points_at, pushups.full_points_gap) == (30, 23)
+    assert (whtr.full_points_at, whtr.full_points_gap) == (45, 3)
 
 
 def test_total_adds_components(standards: StandardsFile) -> None:

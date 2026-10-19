@@ -13,6 +13,7 @@ import {
   initialFormState,
   MAX_AGE,
   MIN_AGE,
+  truncatedRatioText,
 } from "@/lib/score-form";
 import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
 import type { ScoreRequest, Sex } from "@/lib/types";
@@ -196,6 +197,8 @@ function BodyCompFields({
   onWaist,
   onHeight,
 }: BodyCompFieldsProps) {
+  // Set only when the typed ratio has more than two decimals and some digits are dropped.
+  const truncated = truncatedRatioText(ratioText);
   return (
     <fieldset className="flex flex-col gap-3">
       <legend className="mb-2 text-lg font-semibold">
@@ -208,21 +211,29 @@ function BodyCompFields({
         legend="Enter"
         name="whtr-mode"
         options={[
-          { value: "ratio", label: "Ratio" },
           { value: "measurements", label: "Waist and height" },
+          { value: "ratio", label: "Ratio" },
         ]}
         value={state.mode}
         onChange={(mode) => onMode(mode as WhtrMode)}
       />
       {state.mode === "ratio" ? (
-        <TextField
-          label="Waist-to-height ratio"
-          inputMode="decimal"
-          placeholder="0.50"
-          value={ratioText}
-          error={errors.body_comp}
-          onChange={onRatio}
-        />
+        <>
+          <TextField
+            label="Waist-to-height ratio"
+            inputMode="decimal"
+            placeholder="0.50"
+            value={ratioText}
+            error={errors.body_comp}
+            onChange={onRatio}
+          />
+          {truncated !== null && (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Scored as {truncated}. The ratio is truncated to two decimals (DAFMAN 36-2905, para
+              3.15.4.2).
+            </p>
+          )}
+        </>
       ) : (
         <>
           <TextField
@@ -241,10 +252,14 @@ function BodyCompFields({
             error={errors.height}
             onChange={onHeight}
           />
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Enter the values recorded at your PFRA. DAFMAN rounds the waist down, and the height to
+            the nearest, 1/2 inch.
+          </p>
           {whtr !== null && (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Ratio {whtr.exact.toFixed(4)}, scored as {formatRatio(whtr.hundredths)}. The ratio is
-              rounded to two decimals. DAFMAN has not confirmed this rule yet.
+              truncated to two decimals (DAFMAN 36-2905, para 3.15.4.2).
             </p>
           )}
         </>

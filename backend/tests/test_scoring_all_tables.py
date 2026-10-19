@@ -8,7 +8,7 @@ over all tables and lists every table that breaks it.
 from collections.abc import Callable
 from pathlib import Path
 
-from app.core.scoring import score_event
+from app.core.scoring import full_points_gap, minimum_gap, score_event
 from app.core.standards import parse_standards
 from app.models import EventTable
 
@@ -69,6 +69,45 @@ def test_worse_than_the_last_row_earns_zero() -> None:
         expected = (0.0, None if table.component_minimum is None else False)
         got = score_event(table, result)
         return [] if got == expected else [f"result {result} gave {got}, expected {expected}"]
+
+    assert _violations(prop) == []
+
+
+def test_minimum_gap_counts_from_the_minimum() -> None:
+    def prop(table: EventTable) -> list[str]:
+        minimum = table.component_minimum
+        if minimum is None:
+            got = minimum_gap(table, table.brackets[-1].threshold)
+            return [] if got is None else [f"no minimum, but gap {got}"]
+        cases = [(minimum, None), (_worse(table, minimum), 1), (_better(table, minimum), None)]
+        return [
+            f"result {result} gave gap {got}, expected {expected}"
+            for result, expected in cases
+            if (got := minimum_gap(table, result)) != expected
+        ]
+
+    assert _violations(prop) == []
+
+
+def test_full_points_gap_matches_top_row_points() -> None:
+    def prop(table: EventTable) -> list[str]:
+        top = table.brackets[0]
+        cases = [
+            (top.threshold, None),
+            (_better(table, top.threshold), None),
+            (_worse(table, top.threshold), 1),
+        ]
+        problems = [
+            f"result {result} gave gap {got}, expected {expected}"
+            for result, expected in cases
+            if (got := full_points_gap(table, result)) != expected
+        ]
+        # The gap is None exactly when the result earns the top row's points.
+        for b in table.brackets:
+            earns_top = score_event(table, b.threshold)[0] == top.points
+            if earns_top != (full_points_gap(table, b.threshold) is None):
+                problems.append(f"result {b.threshold}: points and gap disagree")
+        return problems
 
     assert _violations(prop) == []
 

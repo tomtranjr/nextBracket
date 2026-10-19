@@ -63,6 +63,7 @@ CI runs these checks on every push: the four backend checks, the Docker smoke te
 - Write tests with the code. Type hints everywhere. Ruff and mypy must pass.
 - Explain non-obvious decisions in short code comments.
 - Units are integers: reps, shuttles, seconds. WHtR is stored in hundredths.
+- WHtR from a waist and height is truncated to two decimals, never rounded (DAFMAN 36-2905 para 3.15.4.2).
 - Python 3.13, managed with uv. Frontend packages are managed with npm.
 - `frontend/lib/types.ts` mirrors `backend/app/models.py` by hand. Change both together.
 - `frontend/lib/events.ts` mirrors the event keys in `backend/data/standards/` by hand. A Vitest test checks it.
