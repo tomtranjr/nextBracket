@@ -52,6 +52,12 @@ def minimum_gap(table: EventTable, result: int) -> int | None:
     return abs(result - minimum)
 
 
+def full_points_gap(table: EventTable, result: int) -> int | None:
+    """Return how far `result` is from the top row, or None if it already earns full points."""
+    top = table.brackets[0].threshold
+    return None if _meets(table, result, top) else abs(result - top)
+
+
 def categorize(total: float, passing_total: int, minimums_missed: bool) -> Category:
     if minimums_missed or total < passing_total:
         return "unsatisfactory"
@@ -108,6 +114,8 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
                 minimum_met=minimum_met,
                 minimum=table.component_minimum,
                 minimum_gap=minimum_gap(table, result),
+                full_points_at=table.brackets[0].threshold,
+                full_points_gap=full_points_gap(table, result),
             )
         )
 

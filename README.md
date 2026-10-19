@@ -288,10 +288,10 @@ curl -s -X POST localhost:8000/score -H 'content-type: application/json' \
     "version": "2026-03-01",
     "effective_date": "2026-03-01",
     "components": [
-        {"component": "cardio", "event": "run_2mile", "result": 940, "points": 44.0, "max_points": 50, "minimum_met": true, "minimum": 1195, "minimum_gap": null},
-        {"component": "strength", "event": "push_up", "result": 45, "points": 8.5, "max_points": 15, "minimum_met": true, "minimum": 28, "minimum_gap": null},
-        {"component": "core", "event": "sit_up", "result": 50, "points": 12.0, "max_points": 15, "minimum_met": true, "minimum": 31, "minimum_gap": null},
-        {"component": "body_comp", "event": "whtr", "result": 49, "points": 20.0, "max_points": 20, "minimum_met": null, "minimum": null, "minimum_gap": null}
+        {"component": "cardio", "event": "run_2mile", "result": 940, "points": 44.0, "max_points": 50, "minimum_met": true, "minimum": 1195, "minimum_gap": null, "full_points_at": 815, "full_points_gap": 125},
+        {"component": "strength", "event": "push_up", "result": 45, "points": 8.5, "max_points": 15, "minimum_met": true, "minimum": 28, "minimum_gap": null, "full_points_at": 63, "full_points_gap": 18},
+        {"component": "core", "event": "sit_up", "result": 50, "points": 12.0, "max_points": 15, "minimum_met": true, "minimum": 31, "minimum_gap": null, "full_points_at": 56, "full_points_gap": 6},
+        {"component": "body_comp", "event": "whtr", "result": 49, "points": 20.0, "max_points": 20, "minimum_met": null, "minimum": null, "minimum_gap": null, "full_points_at": 49, "full_points_gap": null}
     ],
     "not_scored": [],
     "total": 84.5,

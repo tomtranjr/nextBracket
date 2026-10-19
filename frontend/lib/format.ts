@@ -20,6 +20,27 @@ export function formatResult(kind: EventKind, value: number): string {
   }
 }
 
+export type Tone = "full" | "partial" | "none";
+
+/**
+ * The line under points for a component with no minimum (body composition). The tone comes from
+ * the API already returns, so a new chart version needs no change here: no gap is full points,
+ * and zero points is `none`. The gap is a distance, like `minimumNote`. The text says "over", so
+ * use it only for lower-is-better events (WHtR is the only one with no minimum).
+ */
+export function pointsNote(
+  kind: EventKind,
+  scored: Pick<ComponentScore, "points" | "full_points_at" | "full_points_gap">,
+): { tone: Tone; text: string } {
+  if (scored.full_points_gap === null) {
+    return { tone: "full", text: "Full points" };
+  }
+  const at = formatResult(kind, scored.full_points_at);
+  const over = formatResult(kind, scored.full_points_gap);
+  const tone = scored.points === 0 ? "none" : "partial";
+  return { tone, text: `Full points at ${at}, ${over} over` };
+}
+
 /**
  * The line under a component's points: the minimum, and on a miss how far off the result is.
  * Returns null when the component has no minimum. The gap is a distance, so the text needs no

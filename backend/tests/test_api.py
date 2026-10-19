@@ -74,6 +74,15 @@ def test_score_reports_minimum_and_gap(client: TestClient) -> None:
     assert (whtr["minimum"], whtr["minimum_gap"]) == (None, None)
 
 
+def test_score_reports_full_points_gap(client: TestClient) -> None:
+    # WHtR is a ratio in hundredths: 49 earns full points, 52 is 3 over, 62 earns 0 and is 13 over.
+    for whtr, gap, points in [(49, None, 20.0), (52, 3, 17.0), (62, 13, 0.0)]:
+        body = _score(client, results={"values": {"whtr": whtr}}).json()
+        (comp,) = body["components"]
+        got = (comp["points"], comp["full_points_at"], comp["full_points_gap"])
+        assert got == (points, 49, gap)
+
+
 def test_score_response_parses_as_report(client: TestClient) -> None:
     # JSON mode, because strict models do not accept a date string in Python mode.
     ScoreReport.model_validate_json(_score(client).text)

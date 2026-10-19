@@ -220,6 +220,10 @@ class ComponentScore(_Strict):
     minimum: int | None
     # How far `result` is from `minimum` on a miss, in the same units. None when met or no minimum.
     minimum_gap: int | None
+    # The top row from the chart (full points), in the same units as `result`.
+    full_points_at: int
+    # How far `result` is from `full_points_at`. None when the result already earns full points.
+    full_points_gap: int | None
 
 
 class ScoreReport(_Strict):
