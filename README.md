@@ -204,6 +204,16 @@ docker compose up --build
 
 The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
 
+### Deploy
+
+The API runs on Google Cloud Run. The `deploy` workflow starts after the `ci` workflow passes on `main`. You can also run it by hand from `main` with the "Run workflow" button.
+
+The workflow builds the image, tags it with the commit SHA, and pushes it to Artifact Registry. It then deploys a new revision with no traffic and calls `/health` and `/score` on it. Traffic moves to the new revision only if both answers are right. A failed check leaves the old revision live. The very first deploy is the exception, because Cloud Run cannot create a service without traffic.
+
+The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, and `GCP_RUNTIME_SERVICE_ACCOUNT`.
+
+The service runs at most one instance and scales to zero when idle. One instance keeps the in-memory rate limit exact. The first request after an idle period waits a few seconds for a cold start. The API allows browser calls only from `NEXTBRACKET_CORS_ORIGINS`, which is still the local default until the website is deployed.
+
 ## Run the website
 
 You need Node (see `frontend/.nvmrc`) and the API running on `http://localhost:8000`.
