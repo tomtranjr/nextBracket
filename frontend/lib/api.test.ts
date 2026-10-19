@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ApiError, createApiClient } from "@/lib/api";
+import { ApiError, createApiClient, errorMessage } from "@/lib/api";
 import type { ScoreRequest } from "@/lib/types";
 
 interface Call {
@@ -81,6 +81,18 @@ describe("createApiClient", () => {
     expect(calls[0].init?.signal).toBe(controller.signal);
   });
 
+  it("passes the abort signal to fetch for plan", async () => {
+    const { calls, fetchFn } = stubFetch(json({ status: "options" }));
+    const controller = new AbortController();
+    await createApiClient("http://api.test", fetchFn).plan(
+      { profile: { age: 27, sex: "M" }, target: 90 },
+      controller.signal,
+    );
+
+    expect(calls[0].url).toBe("http://api.test/plan");
+    expect(calls[0].init?.signal).toBe(controller.signal);
+  });
+
   it("rejects with AbortError, not ApiError, when the signal aborts", async () => {
     // Like a real fetch: reject with the signal's reason once it aborts.
     const fetchFn: typeof fetch = (_input, init) =>
@@ -150,5 +162,17 @@ describe("errors", () => {
     const error = await failure(json({ message: "nope" }, 500));
 
     expect(error.detail).toBe("HTTP 500");
+  });
+});
+
+describe("errorMessage", () => {
+  it("shows the detail of a 422", () => {
+    expect(errorMessage(new ApiError(422, "age must be 17 to 70"))).toBe("age must be 17 to 70");
+  });
+
+  it("says the service did not answer for any other failure", () => {
+    const text = "Cannot reach the scoring service. Try again in a moment.";
+    expect(errorMessage(new ApiError(500, "HTTP 500"))).toBe(text);
+    expect(errorMessage(new TypeError("Failed to fetch"))).toBe(text);
   });
 });

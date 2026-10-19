@@ -52,6 +52,7 @@ Developers can use the API today. See the [developer guide](#developer-guide).
 Done:
 
 - The website has a live calculator. It scores as you type.
+- The website has a target planner. Pick a target total and see the options from `/plan`.
 - The official charts are turned into data and checked by hand against the PDF.
 - The calculator scores all 8 events, every age band, and AFSPECWAR/EOD.
 - The target planner gives three kinds of options: one event, quick wins, and balanced.
@@ -60,7 +61,7 @@ Done:
 
 The API runs in a Docker image, locally with `docker compose`.
 
-Next: the target planner on the website and a first public release.
+Next: a first public release.
 
 Later: the policy chat, the printable report, and the 2 km walk and body fat checks.
 
@@ -121,7 +122,7 @@ frontend/           Next.js site
     time.ts           mm:ss to seconds, same rules as timeparse.py
 ```
 
-The calculator form, policy search, and chat agent are not built yet. The form goes in `frontend/`. Search and chat go in `app/rag/` and `app/agent/`.
+Policy search and the chat agent are not built yet. Search and chat go in `app/rag/` and `app/agent/`.
 
 ## How it works
 
@@ -152,7 +153,7 @@ Events by component:
 | Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
 | Container | Docker, Docker Compose | built |
 | Hosting | Google Cloud Run | planned |
-| Website | Next.js, TypeScript, Tailwind, on Vercel | scaffolded |
+| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, not deployed |
 | Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
 | Evals and tracing | agent evals, LangSmith | planned |

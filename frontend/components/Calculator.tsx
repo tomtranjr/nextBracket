@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useState } from "react";
 
+import { Planner } from "@/components/Planner";
 import { ScoreResult } from "@/components/ScoreResult";
+import { TextField } from "@/components/TextField";
 import { api } from "@/lib/api";
 import { COMPONENTS, type ComponentInfo } from "@/lib/events";
 import {
@@ -13,46 +15,23 @@ import {
   MIN_AGE,
 } from "@/lib/score-form";
 import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
-import type { ScoreReport, ScoreRequest, Sex } from "@/lib/types";
-import { useDebouncedValue } from "@/lib/use-debounced-value";
+import type { ScoreRequest, Sex } from "@/lib/types";
+import { useLiveAnswer } from "@/lib/use-live-answer";
 
 const DEBOUNCE_MS = 300;
 
-// What came back for one request. `key` is the request as JSON, so the form can tell
-// whether the answer on screen belongs to what is typed now.
-type Answer = { key: string; report: ScoreReport } | { key: string; error: unknown };
-
-const INPUT =
-  "min-h-11 w-full rounded-md border bg-transparent px-3 text-base " +
-  "border-zinc-300 dark:border-zinc-700";
-const INPUT_BAD = "border-red-600 dark:border-red-400";
+// Outside the component, so `useLiveAnswer` sees the same function on every render.
+const scoreCall = (key: string, signal: AbortSignal) =>
+  api.score(JSON.parse(key) as ScoreRequest, signal);
 
 export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
-  const [answer, setAnswer] = useState<Answer | null>(null);
 
-  const { request, errors, whtr } = buildScoreRequest(state);
+  const built = buildScoreRequest(state);
+  const { request, errors, whtr } = built;
   // The key is a string, so the debounce and the effect compare by value, not by identity.
-  // An edit and its undo give the same key, so they send no new request.
   const key = request === null ? null : JSON.stringify(request);
-  const debouncedKey = useDebouncedValue(key, DEBOUNCE_MS);
-
-  useEffect(() => {
-    if (debouncedKey === null) return;
-    const controller = new AbortController();
-    api.score(JSON.parse(debouncedKey) as ScoreRequest, controller.signal).then(
-      (report) => setAnswer({ key: debouncedKey, report }),
-      (error: unknown) => {
-        // The cleanup below aborts a replaced request. That is not a failure to show.
-        if (!controller.signal.aborted) setAnswer({ key: debouncedKey, error });
-      },
-    );
-    return () => controller.abort();
-  }, [debouncedKey]);
-
-  // No stored "loading" flag: the answer is pending when it does not match what is typed now.
-  const shown = key === null ? null : answer;
-  const pending = key !== null && answer?.key !== key;
+  const { value: report, error, pending } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
 
   function update(change: (next: FormState) => void) {
     setState((previous) => {
@@ -138,11 +117,8 @@ export function Calculator() {
         )}
       </form>
 
-      <ScoreResult
-        report={shown !== null && "report" in shown ? shown.report : null}
-        error={shown !== null && "error" in shown ? shown.error : null}
-        pending={pending}
-      />
+      <ScoreResult report={report} error={error} pending={pending} />
+      <Planner state={state} built={built} />
     </div>
   );
 }
@@ -274,44 +250,6 @@ function BodyCompFields({
         </>
       )}
     </fieldset>
-  );
-}
-
-interface TextFieldProps {
-  label: string;
-  inputMode: "numeric" | "decimal";
-  placeholder: string;
-  value: string;
-  error: string | undefined;
-  onChange: (text: string) => void;
-}
-
-// type="text", not "number": a number input takes "e" and "-" and changes on scroll. The
-// parsers in lib/score-form.ts do the checking.
-function TextField({ label, inputMode, placeholder, value, error, onChange }: TextFieldProps) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        type="text"
-        inputMode={inputMode}
-        autoComplete="off"
-        placeholder={placeholder}
-        value={value}
-        aria-invalid={error !== undefined}
-        aria-describedby={error === undefined ? undefined : errorId}
-        className={`${INPUT} ${error === undefined ? "" : INPUT_BAD}`}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {error !== undefined && (
-        <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 
