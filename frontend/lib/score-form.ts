@@ -134,7 +134,8 @@ export function initialFormState(): FormState {
     components: Object.fromEntries(
       COMPONENTS.map((c) => [c.key, { event: c.events[0].key, text: "" }]),
     ),
-    whtr: { mode: "ratio", waist: "", height: "" },
+    // Most people know their waist and height, not their ratio, so ask for those first.
+    whtr: { mode: "measurements", waist: "", height: "" },
   };
 }
 

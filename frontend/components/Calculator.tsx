@@ -208,8 +208,8 @@ function BodyCompFields({
         legend="Enter"
         name="whtr-mode"
         options={[
-          { value: "ratio", label: "Ratio" },
           { value: "measurements", label: "Waist and height" },
+          { value: "ratio", label: "Ratio" },
         ]}
         value={state.mode}
         onChange={(mode) => onMode(mode as WhtrMode)}

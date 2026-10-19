@@ -182,10 +182,17 @@ describe("buildScoreRequest", () => {
       filled((s) => {
         s.components.cardio = { event: "hamr_20m", text: "60" };
         s.components.core = { event: "forearm_plank", text: "2:00" };
+        s.whtr.mode = "ratio";
         s.components.body_comp.text = "0.49";
       }),
     );
     expect(built.request?.results.values).toEqual({ hamr_20m: 60, forearm_plank: 120, whtr: 49 });
+  });
+
+  it("asks for waist and height first, and ignores the ratio text until the user picks ratio", () => {
+    expect(initialFormState().whtr.mode).toBe("measurements");
+    const built = buildScoreRequest(filled((s) => (s.components.body_comp.text = "0.49")));
+    expect(built.request?.results.values).toEqual({ run_2mile: 940 });
   });
 
   it("passes the AFSPECWAR/EOD flag through", () => {
@@ -197,6 +204,7 @@ describe("buildScoreRequest", () => {
     const built = buildScoreRequest(
       filled((s) => {
         s.components.strength.text = "-3";
+        s.whtr.mode = "ratio";
         s.components.body_comp.text = "0.525";
       }),
     );
