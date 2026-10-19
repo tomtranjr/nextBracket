@@ -43,6 +43,15 @@ def score_event(table: EventTable, result: int) -> tuple[float, bool | None]:
     return (0.0 if bracket is None else bracket.points), minimum_met
 
 
+def minimum_gap(table: EventTable, result: int) -> int | None:
+    """Return how far `result` is from the component minimum, or None if it meets it or has none."""
+    minimum = table.component_minimum
+    if minimum is None or _meets(table, result, minimum):
+        return None
+    # A distance, so the caller needs no direction: run seconds over, or reps under.
+    return abs(result - minimum)
+
+
 def categorize(total: float, passing_total: int, minimums_missed: bool) -> Category:
     if minimums_missed or total < passing_total:
         return "unsatisfactory"
@@ -97,6 +106,8 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
                 points=points,
                 max_points=component.max_points,
                 minimum_met=minimum_met,
+                minimum=table.component_minimum,
+                minimum_gap=minimum_gap(table, result),
             )
         )
 
