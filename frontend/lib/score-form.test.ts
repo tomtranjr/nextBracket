@@ -7,6 +7,7 @@ import {
   parseAge,
   parseInches,
   parseRatio,
+  truncatedRatioText,
   parseReps,
   parseResult,
   parseTimeText,
@@ -67,6 +68,11 @@ describe("parseRatio", () => {
     ["1", 100],
     ["1.0", 100],
     ["0", 0],
+    // More than two decimals are cut, never rounded (DAFMAN 36-2905 para 3.15.4.2).
+    ["0.525", 52],
+    ["0.5486", 54],
+    ["0.4999", 49],
+    ["2.999", 299],
   ])("reads %s as %i hundredths", (text, hundredths) => {
     expect(parseRatio(text)).toEqual(ok(hundredths));
   });
@@ -75,8 +81,7 @@ describe("parseRatio", () => {
     expect(parseRatio("")).toEqual({ empty: true });
   });
 
-  // More than two decimals is an error and is never rounded.
-  it.each(["0.525", "0.5.2", "-0.5", "3", "0,52", ".", "1.", "abc"])("rejects %s", (text) => {
+  it.each(["0.5.2", "-0.5", "3", "0,52", ".", "1.", "abc"])("rejects %s", (text) => {
     expect(parseRatio(text)).toMatchObject({ ok: false });
   });
 });
@@ -105,16 +110,27 @@ describe("whtrFromInches", () => {
   it.each([
     ["32.5 / 66 = 0.4924", 3250, 6600, 49],
     ["33 / 66 = 0.50", 3300, 6600, 50],
-    ["99 / 200 is exactly 0.495, rounds up", 9900, 20000, 50],
+    ["DAFMAN example: 39.5 / 72 = 0.5486, truncated", 3950, 7200, 54],
+    ["99 / 200 is exactly 0.495, truncated", 9900, 20000, 49],
     ["49.49 / 100 = 0.4949", 4949, 10000, 49],
-    ["49.5 / 100 is exactly 0.495, rounds up", 4950, 10000, 50],
+    ["49.5 / 100 is exactly 0.495, truncated", 4950, 10000, 49],
+    ["exactly 0.50 stays 50", 3300, 6600, 50],
+    ["a hair under 0.50 is 49", 3299, 6600, 49],
     ["equal waist and height", 6600, 6600, 100],
   ])("%s", (_name, waist, height, hundredths) => {
     expect(whtrFromInches(waist, height).hundredths).toBe(hundredths);
   });
 
-  it("returns the exact ratio for display", () => {
+  it("returns the ratio cut to four decimals for display", () => {
     expect(whtrFromInches(3250, 6600).exact).toBeCloseTo(0.4924, 4);
+    expect(whtrFromInches(3950, 7200).exact).toBe(0.5486);
+  });
+
+  it("never shows a value rounded up across a hundredth", () => {
+    // 49995 / 99999 = 0.499955: toFixed(4) of the raw ratio gives 0.5000, but it scores 49.
+    const result = whtrFromInches(49995, 99999);
+    expect(result.hundredths).toBe(49);
+    expect(result.exact.toFixed(4)).toBe("0.4999");
   });
 });
 
@@ -205,7 +221,7 @@ describe("buildScoreRequest", () => {
       filled((s) => {
         s.components.strength.text = "-3";
         s.whtr.mode = "ratio";
-        s.components.body_comp.text = "0.525";
+        s.components.body_comp.text = "0.5.2";
       }),
     );
     expect(built.request?.results.values).toEqual({ run_2mile: 940 });
@@ -234,8 +250,9 @@ describe("buildScoreRequest with waist and height", () => {
     expect(built.whtr?.exact).toBeCloseTo(0.4924, 4);
   });
 
-  it("rounds half up", () => {
-    expect(buildScoreRequest(measured("49.5", "100")).request?.results.values.whtr).toBe(50);
+  it("truncates, never rounds", () => {
+    expect(buildScoreRequest(measured("49.5", "100")).request?.results.values.whtr).toBe(49);
+    expect(buildScoreRequest(measured("39.5", "72")).request?.results.values.whtr).toBe(54);
   });
 
   it("ignores the ratio text in this mode", () => {
@@ -274,5 +291,19 @@ describe("buildScoreRequest with waist and height", () => {
     );
     expect(built.request?.results.values.whtr).toBe(40);
     expect(built.whtr).toBeNull();
+  });
+});
+
+describe("truncatedRatioText", () => {
+  it("gives the scored value when digits are dropped", () => {
+    expect(truncatedRatioText("0.5486")).toBe("0.54");
+    expect(truncatedRatioText(" 0.525 ")).toBe("0.52");
+  });
+
+  it("gives null when nothing is dropped, or the text is not a ratio", () => {
+    expect(truncatedRatioText("0.52")).toBeNull();
+    expect(truncatedRatioText("0.5")).toBeNull();
+    expect(truncatedRatioText("")).toBeNull();
+    expect(truncatedRatioText("abc")).toBeNull();
   });
 });

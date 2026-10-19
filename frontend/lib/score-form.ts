@@ -13,9 +13,10 @@ export const MAX_AGE = 70;
 export type Parsed = { ok: true; value: number } | { ok: false; error: string } | { empty: true };
 
 const WHOLE = /^\d{1,4}$/;
-// "0.52", ".52", "1", "1.0". Two decimals at most, because the API takes hundredths and we do
-// not round: 0.525 has no rule in the charts, so the person must pick a value.
-const RATIO = /^([0-2])?(?:\.(\d{1,2}))?$/;
+// "0.52", ".52", "1", "1.0", or more decimals such as "0.5486". The API takes hundredths, so
+// `parseRatio` keeps the first two decimals and drops the rest. DAFMAN 36-2905 para 3.15.4.2
+// truncates the ratio, it never rounds it.
+const RATIO = /^([0-2])?(?:\.(\d+))?$/;
 
 const fail = (error: string): Parsed => ({ ok: false, error });
 
@@ -44,17 +45,25 @@ export function parseTimeText(text: string): Parsed {
   }
 }
 
-/** Return hundredths: "0.52" gives 52. */
+/** Return hundredths, cut by string so there is no float error: "0.52" gives 52, "0.5486" gives 54. */
 export function parseRatio(text: string): Parsed {
   const t = text.trim();
   if (t === "") return { empty: true };
   const match = RATIO.exec(t);
   if (match === null) {
-    return fail("Use a ratio with two decimals, for example 0.52.");
+    return fail("Use a ratio such as 0.52.");
   }
   const whole = Number(match[1] ?? "0");
-  const hundredths = Number((match[2] ?? "").padEnd(2, "0"));
+  const hundredths = Number((match[2] ?? "").slice(0, 2).padEnd(2, "0"));
   return { ok: true, value: whole * 100 + hundredths };
+}
+
+/** The scored value ("0.54") for a ratio typed with more than two decimals, else null. */
+export function truncatedRatioText(text: string): string | null {
+  const match = RATIO.exec(text.trim());
+  if (match === null || (match[2] ?? "").length <= 2) return null;
+  const parsed = parseRatio(text);
+  return "value" in parsed ? formatRatio(parsed.value) : null;
 }
 
 const INCHES = /^(\d{1,3})?(?:\.(\d{1,2}))?$/;
@@ -76,22 +85,23 @@ export function formatRatio(hundredths: number): string {
 }
 
 export interface WhtrFromInches {
-  /** Waist divided by height. For display only. */
+  /** Waist divided by height, cut to four decimals. For display only. */
   exact: number;
   /** The ratio in hundredths, as the API takes it. */
   hundredths: number;
 }
 
 /**
- * Waist over height, rounded half up to hundredths: 32.5 / 66 = 0.4924 gives 49.
- * Both arguments are in hundredths of an inch. The rounding is integer math, so an exact
- * 0.495 gives 50 and never 49 from a float error.
- * ASSUMPTION: the charts give no rounding rule. Confirm with DAFMAN 36-2905 (PR 20, design doc 16.2).
+ * Waist over height, truncated to hundredths (DAFMAN 36-2905 para 3.15.4.2, not rounded):
+ * 39.5 / 72 = 0.5486 gives 54, and 32.5 / 66 = 0.4924 gives 49.
+ * Both arguments are whole hundredths of an inch (at most 99999), so each quotient is exact
+ * enough for `Math.floor`: an exact 0.50 gives 50 and a hair under gives 49.
  */
 export function whtrFromInches(waist: number, height: number): WhtrFromInches {
   return {
-    exact: waist / height,
-    hundredths: Math.floor((200 * waist + height) / (2 * height)),
+    // Truncated too, so the note never shows a value rounded up across a hundredth.
+    exact: Math.floor((10000 * waist) / height) / 10000,
+    hundredths: Math.floor((100 * waist) / height),
   };
 }
 
