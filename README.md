@@ -109,6 +109,7 @@ backend/
     api/
       routes.py       the HTTP endpoints
       deps.py         the only place that reads files and the clock
+      ratelimit.py    in-memory rate limit (per client and global)
   data/
     standards/      versioned scoring JSON (2026-03-01.json)
     sources/        the official charts PDF
@@ -189,6 +190,12 @@ A browser may call the API only from the sites in `NEXTBRACKET_CORS_ORIGINS`. Th
 NEXTBRACKET_CORS_ORIGINS='["https://example.app"]' uv run uvicorn app.main:app
 ```
 
+### Rate limit
+
+The API limits requests to protect against floods and runaway cost. Each client address gets 60 requests a minute, and all clients together get 600. Past a limit, the API answers `429` with a `Retry-After` header (seconds to wait). `/health` and CORS preflight (`OPTIONS`) requests are never limited. A preflight runs no endpoint code, so it costs about the same as a `429`. Set `NEXTBRACKET_RATE_LIMIT_PER_IP` and `NEXTBRACKET_RATE_LIMIT_GLOBAL` to change the limits, and use `0` to turn one off.
+
+The counters live in memory, so they are exact only while one process serves all traffic. Cloud Run is set to a single instance for this reason. The limiter reads the client address from the last `X-Forwarded-For` entry, which Cloud Run sets. It keeps no address after the minute ends.
+
 ### Run with Docker
 
 ```
@@ -196,6 +203,16 @@ docker compose up --build
 ```
 
 The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
+
+### Deploy
+
+The API runs on Google Cloud Run. The `deploy` workflow starts after the `ci` workflow passes on `main`. You can also run it by hand from `main` with the "Run workflow" button. A manual run deploys only if `ci` passed for that commit.
+
+The workflow builds the image, tags it with the commit SHA, and pushes it to Artifact Registry. It then deploys a new revision with no traffic and calls `/health` and `/score` on it. Traffic moves to the new revision only if both answers are right. A failed check leaves the old revision live. The very first deploy is the exception, because Cloud Run cannot create a service without traffic.
+
+The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, and `GCP_RUNTIME_SERVICE_ACCOUNT`.
+
+The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start. The API allows browser calls only from `NEXTBRACKET_CORS_ORIGINS`, which is still the local default until the website is deployed.
 
 ## Run the website
 

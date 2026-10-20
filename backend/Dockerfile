@@ -3,7 +3,8 @@
 # Two stages: the builder has uv and installs the project. The runtime image has no uv.
 
 # The derived uv image has uv and Python preinstalled. The uv version is pinned.
-FROM ghcr.io/astral-sh/uv:0.13.0-python3.13-trixie-slim AS builder
+# The digest pins the exact image, so a moved tag cannot change a build.
+FROM ghcr.io/astral-sh/uv:0.13.0-python3.13-trixie-slim@sha256:40215b626e22e4ff65839863624c4b885b8829b1a66ce895b7be20eca7fabe6d AS builder
 
 # Compile bytecode for faster start. Copy files instead of linking, because the cache
 # mount is not part of the image. Skip dev dependencies. Use the system Python in both
@@ -30,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 
 # The final image has no uv.
-FROM python:3.13-slim-trixie
+FROM python:3.13-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
 # This must match the builder's Python, because .venv points at the interpreter path.
 
 RUN groupadd --system --gid 999 nonroot \

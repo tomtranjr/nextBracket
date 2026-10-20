@@ -1,0 +1,167 @@
+name: deploy
+
+# Deploys the API to Cloud Run after `ci` passes on main. You can also run it by hand from main,
+# but only for a commit that `ci` passed.
+# GCP settings are repository variables (Settings > Secrets and variables > Actions > Variables).
+# They are not secrets. Login uses Workload Identity Federation, so there is no key file.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+  workflow_dispatch:
+
+# Two deploys must not race for traffic. A newer one waits instead of cancelling a running one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read # lets the check job read past `ci` runs
+  id-token: write # lets the job ask GitHub for the OIDC token that Google trusts
+
+env:
+  SERVICE: nextbracket-api
+  REGION: ${{ vars.GCP_REGION }}
+  PROJECT: ${{ vars.GCP_PROJECT_ID }}
+  # The commit that `ci` tested, or the commit of a manual run.
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nextbracket/api
+
+jobs:
+  # CI runs can finish out of order: commit B may pass before an older commit A. Without this
+  # check, A could deploy after B and put an older version live. Only the newest commit on main
+  # deploys. An older one stops here, and the newer commit has its own deploy run.
+  check:
+    # Only main deploys. Google also checks this, so a branch cannot get a token.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    outputs:
+      current: ${{ steps.tip.outputs.current }}
+    steps:
+      - id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          tip=$(gh api "repos/${REPO}/commits/main" --jq .sha)
+          if [ "$tip" != "$SHA" ]; then
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped. ${SHA} is not the newest commit on main (${tip})."
+            exit 0
+          fi
+
+          # A run from `ci` already passed. A manual run must find a passing `ci` push run
+          # for the same commit, so a broken commit cannot deploy by hand.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            passed=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SHA}&branch=main&event=push&status=success" --jq .total_count)
+            if [ "$passed" -eq 0 ]; then
+              echo "current=false" >> "$GITHUB_OUTPUT"
+              echo "::error::Stopped. ci has not passed for ${SHA}."
+              exit 1
+            fi
+          fi
+          echo "current=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+          persist-credentials: false
+
+      - uses: google-github-actions/auth@v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      # gcloud is preinstalled on the runner and picks up the credentials from the step above.
+      - name: Build and push the image
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "${IMAGE}:${SHA}" backend
+          docker push "${IMAGE}:${SHA}"
+
+      # A new service cannot be created with --no-traffic, so the first deploy goes live at once.
+      # Every later deploy waits behind the smoke test. Any error other than "not found" stops
+      # the job, so a permission problem cannot look like a first deploy.
+      - name: Check if the service exists
+        id: exists
+        run: |
+          if out=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" 2>&1); then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "Cannot find service" <<<"$out"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"
+            exit 1
+          fi
+
+      # Max 1 instance per revision keeps the in-memory rate limit exact. During a deploy the
+      # candidate is a second revision, so for a short time up to 2 instances can run, each with
+      # its own counters. We do not set the service-level --max: Cloud Run divides it among
+      # revisions that get traffic, and the candidate gets none, so the smoke test could starve.
+      # Min 0 scales to zero, so an idle API costs nothing. The 30 s timeout is long for
+      # endpoints that answer in milliseconds.
+      - uses: google-github-actions/deploy-cloudrun@v3.0.1
+        id: deploy
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT }}
+          image: ${{ env.IMAGE }}:${{ env.SHA }}
+          tag: candidate
+          no_traffic: ${{ steps.exists.outputs.exists == 'true' }}
+          timeout: 30s
+          flags: >-
+            --allow-unauthenticated
+            --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+            --max-instances=1
+            --min-instances=0
+            --cpu=1
+            --memory=512Mi
+
+      # Call the new revision through its tag URL. It takes no public traffic yet.
+      - name: Smoke test the new revision
+        run: |
+          candidate=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format=json \
+            | jq -r '.status.traffic[] | select(.tag == "candidate") | .url')
+          if [ -z "$candidate" ]; then
+            echo "No candidate URL found"
+            exit 1
+          fi
+
+          # The first call may wait for a cold start.
+          ok=false
+          for _ in $(seq 1 30); do
+            if curl -fsS "$candidate/health"; then
+              ok=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ok" != true ]; then
+            echo "The new revision did not become healthy"
+            exit 1
+          fi
+
+          # A 27 year old male: 15:40 run, 45 push-ups, 50 sit-ups, WHtR 0.49. The README shows
+          # the same request. A change in the answer fails the deploy.
+          curl -fsS -X POST "$candidate/score" -H 'content-type: application/json' \
+            -d '{"profile":{"age":27,"sex":"M"},"results":{"values":{"run_2mile":940,"push_up":45,"sit_up":50,"whtr":49}}}' \
+            | tee score.json
+          jq -e '.total == 84.5 and .category == "satisfactory"' score.json
+
+      - name: Send traffic to the new revision
+        run: |
+          gcloud run services update-traffic "$SERVICE" --region "$REGION" --project "$PROJECT" --to-latest
+          echo "Live at ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
