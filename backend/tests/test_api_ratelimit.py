@@ -152,6 +152,16 @@ def test_app_answers_429_with_cors_headers() -> None:
     assert "retry-after" in blocked[0].headers
 
 
+def test_app_does_not_count_cors_preflights() -> None:
+    # CORS answers a preflight before the limiter runs. This is on purpose: see main.py.
+    settings = Settings(rate_limit_per_ip=1, rate_limit_global=0)
+    preflight = {"Origin": SITE, "Access-Control-Request-Method": "POST"}
+    with TestClient(create_app(settings)) as client:
+        assert all(client.options("/score", headers=preflight).status_code == 200 for _ in range(5))
+        # The preflights did not use the allowance.
+        assert client.get("/versions").status_code == 200
+
+
 def test_app_has_no_limiter_when_both_limits_are_off() -> None:
     settings = Settings(rate_limit_per_ip=0, rate_limit_global=0)
     with TestClient(create_app(settings)) as client:

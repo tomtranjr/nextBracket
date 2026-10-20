@@ -1,6 +1,7 @@
 name: deploy
 
-# Deploys the API to Cloud Run after `ci` passes on main. You can also run it by hand from main.
+# Deploys the API to Cloud Run after `ci` passes on main. You can also run it by hand from main,
+# but only for a commit that `ci` passed.
 # GCP settings are repository variables (Settings > Secrets and variables > Actions > Variables).
 # They are not secrets. Login uses Workload Identity Federation, so there is no key file.
 on:
@@ -16,6 +17,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read # lets the check job read past `ci` runs
   id-token: write # lets the job ask GitHub for the OIDC token that Google trusts
 
 env:
@@ -46,14 +48,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
         run: |
           tip=$(gh api "repos/${REPO}/commits/main" --jq .sha)
-          if [ "$tip" = "$SHA" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ "$tip" != "$SHA" ]; then
             echo "current=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Skipped. ${SHA} is not the newest commit on main (${tip})."
+            exit 0
           fi
+
+          # A run from `ci` already passed. A manual run must find a passing `ci` push run
+          # for the same commit, so a broken commit cannot deploy by hand.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            passed=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SHA}&branch=main&event=push&status=success" --jq .total_count)
+            if [ "$passed" -eq 0 ]; then
+              echo "current=false" >> "$GITHUB_OUTPUT"
+              echo "::error::Stopped. ci has not passed for ${SHA}."
+              exit 1
+            fi
+          fi
+          echo "current=true" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: check

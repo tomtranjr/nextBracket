@@ -12,6 +12,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Next Bracket")
     # Added before CORS on purpose. The last middleware added is the outermost, so CORS wraps
     # the limiter and a 429 still carries CORS headers. Then the website can read it.
+    # CORS answers preflights itself, so the limiter never counts them. A preflight runs no
+    # route code, and a 429 reaches Cloud Run just the same, so limiting it would save nothing.
     if settings.rate_limit_per_ip or settings.rate_limit_global:
         limiter = RateLimiter(settings.rate_limit_per_ip, settings.rate_limit_global)
         app.add_middleware(RateLimitMiddleware, limiter=limiter)
