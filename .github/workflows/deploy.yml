@@ -27,7 +27,10 @@ env:
   IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nextbracket/api
 
 jobs:
-  deploy:
+  # CI runs can finish out of order: commit B may pass before an older commit A. Without this
+  # check, A could deploy after B and put an older version live. Only the newest commit on main
+  # deploys. An older one stops here, and the newer commit has its own deploy run.
+  check:
     # Only main deploys. Google also checks this, so a branch cannot get a token.
     if: >-
       github.ref == 'refs/heads/main' &&
@@ -35,6 +38,26 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    outputs:
+      current: ${{ steps.tip.outputs.current }}
+    steps:
+      - id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          tip=$(gh api "repos/${REPO}/commits/main" --jq .sha)
+          if [ "$tip" = "$SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped. ${SHA} is not the newest commit on main (${tip})."
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.current == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -69,8 +92,12 @@ jobs:
             exit 1
           fi
 
-      # Max 1 instance keeps the in-memory rate limit exact. Min 0 scales to zero, so an idle
-      # API costs nothing. The 30 s timeout is long for endpoints that answer in milliseconds.
+      # Max 1 instance per revision keeps the in-memory rate limit exact. During a deploy the
+      # candidate is a second revision, so for a short time up to 2 instances can run, each with
+      # its own counters. We do not set the service-level --max: Cloud Run divides it among
+      # revisions that get traffic, and the candidate gets none, so the smoke test could starve.
+      # Min 0 scales to zero, so an idle API costs nothing. The 30 s timeout is long for
+      # endpoints that answer in milliseconds.
       - uses: google-github-actions/deploy-cloudrun@v3.0.1
         id: deploy
         with:

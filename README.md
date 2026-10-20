@@ -212,7 +212,7 @@ The workflow builds the image, tags it with the commit SHA, and pushes it to Art
 
 The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, and `GCP_RUNTIME_SERVICE_ACCOUNT`.
 
-The service runs at most one instance and scales to zero when idle. One instance keeps the in-memory rate limit exact. The first request after an idle period waits a few seconds for a cold start. The API allows browser calls only from `NEXTBRACKET_CORS_ORIGINS`, which is still the local default until the website is deployed.
+The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start. The API allows browser calls only from `NEXTBRACKET_CORS_ORIGINS`, which is still the local default until the website is deployed.
 
 ## Run the website
 

@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,8 +21,9 @@ class Settings(BaseSettings):
     # Requests per minute. They cap cost on the public API: one client address, and all
     # clients together. 0 turns a limit off. The counters live in memory, so they are exact only
     # while Cloud Run runs a single instance.
-    rate_limit_per_ip: int = 60
-    rate_limit_global: int = 600
+    # ge=0: a negative value would block every request, so it fails at startup instead.
+    rate_limit_per_ip: int = Field(default=60, ge=0)
+    rate_limit_global: int = Field(default=600, ge=0)
 
 
 @lru_cache

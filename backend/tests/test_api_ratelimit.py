@@ -3,6 +3,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.api.ratelimit import MAX_KEYS, OVERFLOW_KEY, RateLimiter, RateLimitMiddleware
 from app.config import Settings
@@ -155,3 +156,14 @@ def test_app_has_no_limiter_when_both_limits_are_off() -> None:
     settings = Settings(rate_limit_per_ip=0, rate_limit_global=0)
     with TestClient(create_app(settings)) as client:
         assert all(client.get("/versions").status_code != 429 for _ in range(100))
+
+
+def test_a_negative_per_ip_limit_fails_at_startup() -> None:
+    # A negative limit would block every request, so settings must reject it.
+    with pytest.raises(ValidationError):
+        Settings(rate_limit_per_ip=-1)
+
+
+def test_a_negative_global_limit_fails_at_startup() -> None:
+    with pytest.raises(ValidationError):
+        Settings(rate_limit_global=-1)
