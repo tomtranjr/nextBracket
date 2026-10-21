@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 import { TextField } from "@/components/TextField";
-import { api, errorMessage } from "@/lib/api";
+import { ErrorBox } from "@/components/ErrorBox";
+import { api } from "@/lib/api";
 import { formatPoints } from "@/lib/format";
 import {
   assumptionNote,
@@ -37,7 +38,7 @@ export function Planner({ state, built }: Props) {
   const target = parseTarget(targetText);
   const request = buildPlanRequest(built, target);
   const key = request === null ? null : JSON.stringify(request);
-  const { value: result, error, pending } = useLiveAnswer(key, planCall, DEBOUNCE_MS);
+  const { value: result, error, pending, retry } = useLiveAnswer(key, planCall, DEBOUNCE_MS);
   const hint = planHint(state, built, target);
 
   return (
@@ -75,9 +76,7 @@ export function Planner({ state, built }: Props) {
         {hint !== null ? (
           <p className="text-zinc-600 dark:text-zinc-400">{hint}</p>
         ) : error !== null ? (
-          <p role="alert" className="text-red-700 dark:text-red-400">
-            {errorMessage(error)}
-          </p>
+          <ErrorBox error={error} onRetry={retry} />
         ) : result !== null ? (
           <Plan result={result} />
         ) : pending ? (

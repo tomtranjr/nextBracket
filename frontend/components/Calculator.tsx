@@ -39,7 +39,7 @@ export function Calculator() {
   const { request, errors, whtr } = built;
   // The key is a string, so the debounce and the effect compare by value, not by identity.
   const key = request === null ? null : JSON.stringify(request);
-  const { value: report, error, pending } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
+  const { value: report, error, pending, retry } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
 
   function update(change: (next: FormState) => void) {
     setState((previous) => {
@@ -125,7 +125,7 @@ export function Calculator() {
         )}
       </form>
 
-      <ScoreResult report={report} error={error} pending={pending} />
+      <ScoreResult report={report} error={error} pending={pending} onRetry={retry} />
       <Planner state={state} built={built} />
     </div>
   );
