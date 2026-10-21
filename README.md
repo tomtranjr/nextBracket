@@ -121,6 +121,7 @@ frontend/           Next.js site
     api.ts            typed client for the API
     types.ts          request and response types, copied by hand from models.py
     time.ts           mm:ss to seconds, same rules as timeparse.py
+    score-form.ts     reads the form; times also as 15.40 or 1540, since phone keypads have no ":"
 ```
 
 Policy search and the chat agent are not built yet. Search and chat go in `app/rag/` and `app/agent/`.
@@ -212,7 +213,7 @@ The workflow builds the image, tags it with the commit SHA, and pushes it to Art
 
 The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, `GCP_RUNTIME_SERVICE_ACCOUNT`, and `CORS_ORIGINS`.
 
-The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start.
+The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start. The website calls `/health` when the page loads to start the API early, and shows "Scoring..." while it waits. A failed call shows what went wrong (no connection, too many requests, or a service error) and a "Try again" button.
 
 The workflow sets `NEXTBRACKET_CORS_ORIGINS` on every deploy from the `CORS_ORIGINS` variable, a JSON list such as `["https://nextbracket-five.vercel.app"]`. Each entry must be a scheme, a host, and an optional port, with no path, query, or trailing slash, the way a browser sends it. A missing or bad value stops the deploy, so the API never falls back to the localhost default by accident. The smoke test also checks that the first origin in the list gets its CORS header back.
 
