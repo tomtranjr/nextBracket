@@ -13,6 +13,7 @@ import {
   initialFormState,
   MAX_AGE,
   MIN_AGE,
+  timeReadAsText,
   truncatedRatioText,
 } from "@/lib/score-form";
 import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
@@ -143,6 +144,10 @@ function ComponentFields({
 }: ComponentFieldsProps) {
   const chosen = component.events.find((e) => e.key === event) ?? component.events[0];
   const placeholder = { reps: "Reps", time: "m:ss", ratio: "0.50" }[chosen.kind];
+  // Phone number keypads have no ":" key. The decimal keypad has ".", and the form reads
+  // "15.40" and "1540" too, so a time can be typed on any phone.
+  const inputMode = chosen.kind === "reps" ? "numeric" : "decimal";
+  const readAs = chosen.kind === "time" ? timeReadAsText(text) : null;
 
   return (
     <fieldset className="flex flex-col gap-3">
@@ -163,10 +168,11 @@ function ComponentFields({
       )}
       <TextField
         label={chosen.label}
-        inputMode={chosen.kind === "ratio" ? "decimal" : "numeric"}
+        inputMode={inputMode}
         placeholder={placeholder}
         value={text}
         error={error}
+        note={readAs === null ? null : `Read as ${readAs}.`}
         onChange={onText}
       />
     </fieldset>

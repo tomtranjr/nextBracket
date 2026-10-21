@@ -11,6 +11,8 @@ interface TextFieldProps {
   placeholder: string;
   value: string;
   error: string | undefined;
+  /** Plain help under the input, for example how the form read the text. */
+  note?: string | null;
   onChange: (text: string) => void;
 }
 
@@ -22,10 +24,16 @@ export function TextField({
   placeholder,
   value,
   error,
+  note,
   onChange,
 }: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
+  const noteId = `${id}-note`;
+  const describedBy = [
+    error === undefined ? null : errorId,
+    note ? noteId : null,
+  ].filter((part) => part !== null);
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id}>{label}</label>
@@ -37,13 +45,18 @@ export function TextField({
         placeholder={placeholder}
         value={value}
         aria-invalid={error !== undefined}
-        aria-describedby={error === undefined ? undefined : errorId}
+        aria-describedby={describedBy.length === 0 ? undefined : describedBy.join(" ")}
         className={`${INPUT} ${error === undefined ? "" : INPUT_BAD}`}
         onChange={(e) => onChange(e.target.value)}
       />
       {error !== undefined && (
         <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
           {error}
+        </p>
+      )}
+      {note && (
+        <p id={noteId} className="text-sm text-zinc-600 dark:text-zinc-400">
+          {note}
         </p>
       )}
     </div>
