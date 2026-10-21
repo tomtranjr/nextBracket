@@ -2,8 +2,9 @@ name: deploy
 
 # Deploys the API to Cloud Run after `ci` passes on main. You can also run it by hand from main,
 # but only for a commit that `ci` passed.
-# GCP settings are repository variables (Settings > Secrets and variables > Actions > Variables).
-# They are not secrets. Login uses Workload Identity Federation, so there is no key file.
+# GCP settings and CORS_ORIGINS are repository variables (Settings > Secrets and variables >
+# Actions > Variables). They are not secrets. Login uses Workload Identity Federation, so there
+# is no key file.
 on:
   workflow_run:
     workflows: [ci]
@@ -106,12 +107,28 @@ jobs:
             exit 1
           fi
 
+      # CORS_ORIGINS is a JSON list such as ["https://nextbracket-five.vercel.app"]. A missing or bad
+      # value stops the deploy, so the API cannot fall back to the localhost default unnoticed.
+      # A browser sends the origin as scheme, host, and optional port, with no path, query,
+      # user info, or trailing slash. Every entry must look the same or CORS never matches it.
+      # jq writes the file, so quotes and commas in the value need no escaping. JSON is valid YAML.
+      - name: Write the env vars file
+        env:
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+        run: |
+          if ! jq -e 'type == "array" and length > 0 and all(type == "string" and test("^https?://[A-Za-z0-9.-]+(:[0-9]+)?$"))' <<<"$CORS_ORIGINS" >/dev/null 2>&1; then
+            echo "::error::Set the CORS_ORIGINS repository variable to a JSON list of origins, such as [\"https://nextbracket-five.vercel.app\"]."
+            exit 1
+          fi
+          jq -n --arg v "$CORS_ORIGINS" '{NEXTBRACKET_CORS_ORIGINS: $v}' > env.yaml
+
       # Max 1 instance per revision keeps the in-memory rate limit exact. During a deploy the
       # candidate is a second revision, so for a short time up to 2 instances can run, each with
       # its own counters. We do not set the service-level --max: Cloud Run divides it among
       # revisions that get traffic, and the candidate gets none, so the smoke test could starve.
       # Min 0 scales to zero, so an idle API costs nothing. The 30 s timeout is long for
-      # endpoints that answer in milliseconds.
+      # endpoints that answer in milliseconds. --env-vars-file replaces every env var on the
+      # revision, so any new one goes in env.yaml above.
       - uses: google-github-actions/deploy-cloudrun@v3.0.1
         id: deploy
         with:
@@ -129,9 +146,12 @@ jobs:
             --min-instances=0
             --cpu=1
             --memory=512Mi
+            --env-vars-file=env.yaml
 
       # Call the new revision through its tag URL. It takes no public traffic yet.
       - name: Smoke test the new revision
+        env:
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
         run: |
           candidate=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format=json \
             | jq -r '.status.traffic[] | select(.tag == "candidate") | .url')
@@ -161,7 +181,18 @@ jobs:
             | tee score.json
           jq -e '.total == 84.5 and .category == "satisfactory"' score.json
 
+          # The website's origin must get its CORS header back, or the browser blocks every call.
+          origin=$(jq -r '.[0]' <<<"$CORS_ORIGINS")
+          allowed=$(curl -fsS -o /dev/null -D - -H "Origin: $origin" "$candidate/versions" \
+            | tr -d '\r' | awk 'tolower($1) == "access-control-allow-origin:" {print $2}')
+          if [ "$allowed" != "$origin" ]; then
+            echo "CORS does not allow $origin (got '$allowed')"
+            exit 1
+          fi
+
       - name: Send traffic to the new revision
         run: |
           gcloud run services update-traffic "$SERVICE" --region "$REGION" --project "$PROJECT" --to-latest
-          echo "Live at ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          # The deploy step's url output is the candidate tag URL, so read the service URL instead.
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "Live at $url" >> "$GITHUB_STEP_SUMMARY"

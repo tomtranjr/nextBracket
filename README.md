@@ -153,8 +153,8 @@ Events by component:
 | Calculator | Pure Python functions and versioned scoring tables (JSON) | built |
 | Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
 | Container | Docker, Docker Compose | built |
-| Hosting | Google Cloud Run | planned |
-| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, not deployed |
+| Hosting | Google Cloud Run (API), Vercel (website) | built |
+| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, deployed at https://nextbracket-five.vercel.app |
 | Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
 | Evals and tracing | agent evals, LangSmith | planned |
@@ -210,9 +210,13 @@ The API runs on Google Cloud Run. The `deploy` workflow starts after the `ci` wo
 
 The workflow builds the image, tags it with the commit SHA, and pushes it to Artifact Registry. It then deploys a new revision with no traffic and calls `/health` and `/score` on it. Traffic moves to the new revision only if both answers are right. A failed check leaves the old revision live. The very first deploy is the exception, because Cloud Run cannot create a service without traffic.
 
-The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, and `GCP_RUNTIME_SERVICE_ACCOUNT`.
+The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, `GCP_RUNTIME_SERVICE_ACCOUNT`, and `CORS_ORIGINS`.
 
-The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start. The API allows browser calls only from `NEXTBRACKET_CORS_ORIGINS`, which is still the local default until the website is deployed.
+The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start.
+
+The workflow sets `NEXTBRACKET_CORS_ORIGINS` on every deploy from the `CORS_ORIGINS` variable, a JSON list such as `["https://nextbracket-five.vercel.app"]`. Each entry must be a scheme, a host, and an optional port, with no path, query, or trailing slash, the way a browser sends it. A missing or bad value stops the deploy, so the API never falls back to the localhost default by accident. The smoke test also checks that the first origin in the list gets its CORS header back.
+
+The website runs on Vercel. Vercel's GitHub integration builds `frontend/` and deploys every push to `main` to production. It does not wait for the `ci` workflow. `NEXT_PUBLIC_API_URL` is set in the Vercel project for Production only. Vercel also builds a preview for every other branch. A preview has its own URL, which is not in `CORS_ORIGINS`, so its form cannot reach the API. Previews only prove that the site builds.
 
 ## Run the website
 
@@ -224,7 +228,7 @@ npm ci
 npm run dev
 ```
 
-The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes waist and height in inches first, or the ratio. The site truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires, and says so on screen. Each score row shows a green check, an amber minus, or a red X, with a short note. Green means the component minimum is met, or full points for body composition. Amber means partial points for body composition. Red means the minimum is missed, or 0 points for body composition. Age and sex start blank on purpose, and the site stores nothing. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
+The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes waist and height in inches first, or the ratio. The site truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires, and says so on screen. Each score row shows a green check, an amber minus, or a red X, with a short note. Green means the component minimum is met, or full points for body composition. Amber means partial points for body composition. Red means the minimum is missed, or 0 points for body composition. Age and sex start blank on purpose. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
 
 Checks for the website:
 
@@ -233,6 +237,14 @@ npm run lint && npm run typecheck && npm test && npm run build
 ```
 
 `frontend/lib/types.ts` is written by hand. When a model in `backend/app/models.py` changes, change the matching type there too.
+
+### Privacy
+
+Nothing you type is stored or logged. The site holds your inputs in the page only, and the API logs the method, path, and status, not the request body.
+
+The live site uses Vercel Web Analytics and Speed Insights to count page views and measure load speed. They send no form values, and the site sends no custom events. In local development they send nothing.
+
+Vercel and Cloud Run keep their own platform request logs, which include the client address. We do not control how long they keep them.
 
 ## API reference
 

@@ -59,7 +59,7 @@ CI runs these checks on every push: the four backend checks, the Docker smoke te
 - Chart values come from `scripts/extract_tables.py`, then are checked by hand against the PDF.
 - Keep `app/core/` free of I/O and LLM calls. Tools in `app/agent/` are thin wrappers around `core`.
 - Do not add new dependencies without asking. No new infrastructure.
-- Never log request bodies or user inputs. Never store user data.
+- Never log request bodies or user inputs. Never store user inputs. Never send user inputs to Vercel Web Analytics or Speed Insights. They record page views and performance only, with no custom events.
 - Write tests with the code. Type hints everywhere. Ruff and mypy must pass.
 - Explain non-obvious decisions in short code comments.
 - Units are integers: reps, shuttles, seconds. WHtR is stored in hundredths.
