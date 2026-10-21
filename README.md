@@ -154,7 +154,7 @@ Events by component:
 | Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
 | Container | Docker, Docker Compose | built |
 | Hosting | Google Cloud Run (API), Vercel (website) | built |
-| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, deployed at VERCEL_URL_TBD |
+| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, deployed at https://nextbracket-five.vercel.app |
 | Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
 | Evals and tracing | agent evals, LangSmith | planned |
@@ -214,7 +214,7 @@ The workflow logs in with Workload Identity Federation, so the repository holds 
 
 The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start.
 
-The workflow sets `NEXTBRACKET_CORS_ORIGINS` on every deploy from the `CORS_ORIGINS` variable, a JSON list such as `["https://nextbracket.vercel.app"]`. A missing or bad value stops the deploy, so the API never falls back to the localhost default by accident. The smoke test also checks that the first origin in the list gets its CORS header back.
+The workflow sets `NEXTBRACKET_CORS_ORIGINS` on every deploy from the `CORS_ORIGINS` variable, a JSON list such as `["https://nextbracket.vercel.app"]`. Each entry must be a scheme and host with no path or trailing slash, the way a browser sends it. A missing or bad value stops the deploy, so the API never falls back to the localhost default by accident. The smoke test also checks that the first origin in the list gets its CORS header back.
 
 The website runs on Vercel. Vercel's GitHub integration builds `frontend/` and deploys every push to `main` to production. It does not wait for the `ci` workflow. `NEXT_PUBLIC_API_URL` is set in the Vercel project for Production only. Vercel also builds a preview for every other branch. A preview has its own URL, which is not in `CORS_ORIGINS`, so its form cannot reach the API. Previews only prove that the site builds.
 

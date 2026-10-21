@@ -109,12 +109,14 @@ jobs:
 
       # CORS_ORIGINS is a JSON list such as ["https://nextbracket.vercel.app"]. A missing or bad
       # value stops the deploy, so the API cannot fall back to the localhost default unnoticed.
+      # A browser sends the origin as scheme and host with no path or trailing slash, so each
+      # entry must look the same or CORS never matches.
       # jq writes the file, so quotes and commas in the value need no escaping. JSON is valid YAML.
       - name: Write the env vars file
         env:
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
         run: |
-          if ! jq -e 'type == "array" and length > 0 and all(type == "string")' <<<"$CORS_ORIGINS" >/dev/null 2>&1; then
+          if ! jq -e 'type == "array" and length > 0 and all(type == "string" and test("^https?://[^/]+$"))' <<<"$CORS_ORIGINS" >/dev/null 2>&1; then
             echo "::error::Set the CORS_ORIGINS repository variable to a JSON list of origins, such as [\"https://nextbracket.vercel.app\"]."
             exit 1
           fi
