@@ -191,4 +191,6 @@ jobs:
       - name: Send traffic to the new revision
         run: |
           gcloud run services update-traffic "$SERVICE" --region "$REGION" --project "$PROJECT" --to-latest
-          echo "Live at ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          # The deploy step's url output is the candidate tag URL, so read the service URL instead.
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)')
+          echo "Live at $url" >> "$GITHUB_STEP_SUMMARY"
