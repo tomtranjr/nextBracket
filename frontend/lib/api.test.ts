@@ -170,9 +170,21 @@ describe("errorMessage", () => {
     expect(errorMessage(new ApiError(422, "age must be 17 to 70"))).toBe("age must be 17 to 70");
   });
 
-  it("says the service did not answer for any other failure", () => {
-    const text = "Cannot reach the scoring service. Try again in a moment.";
-    expect(errorMessage(new ApiError(500, "HTTP 500"))).toBe(text);
-    expect(errorMessage(new TypeError("Failed to fetch"))).toBe(text);
+  it("asks the person to wait after a 429", () => {
+    expect(errorMessage(new ApiError(429, "Rate limit exceeded"))).toBe(
+      "Too many requests. Wait a minute, then try again.",
+    );
+  });
+
+  it.each([500, 503, 404])("says the service had an error for a %i", (status) => {
+    expect(errorMessage(new ApiError(status, `HTTP ${status}`))).toBe(
+      "The scoring service had an error.",
+    );
+  });
+
+  it("says the service is out of reach when the call never got an answer", () => {
+    expect(errorMessage(new TypeError("Failed to fetch"))).toBe(
+      "Cannot reach the scoring service.",
+    );
   });
 });

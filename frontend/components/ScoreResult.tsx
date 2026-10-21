@@ -1,4 +1,4 @@
-import { errorMessage } from "@/lib/api";
+import { ErrorBox } from "@/components/ErrorBox";
 import { COMPONENTS, findEvent } from "@/lib/events";
 import { formatPoints as points, minimumNote, pointsNote } from "@/lib/format";
 import type { ComponentScore, ScoreReport } from "@/lib/types";
@@ -8,6 +8,8 @@ interface Props {
   error: unknown;
   /** True while the shown answer is older than the form. */
   pending: boolean;
+  /** Send the same request again after a failure. */
+  onRetry: () => void;
 }
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -39,7 +41,7 @@ function rowStatus(scored: ComponentScore): { status: Status; text: string } | n
   return { status: status[note.tone], text: note.text };
 }
 
-export function ScoreResult({ report, error, pending }: Props) {
+export function ScoreResult({ report, error, pending, onRetry }: Props) {
   return (
     <section
       aria-live="polite"
@@ -53,12 +55,11 @@ export function ScoreResult({ report, error, pending }: Props) {
       </h2>
 
       {error !== null && error !== undefined ? (
-        <p role="alert" className="mt-2 text-red-700 dark:text-red-400">
-          {errorMessage(error)}
-        </p>
+        <ErrorBox error={error} onRetry={onRetry} />
       ) : report === null ? (
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Enter your age, sex, and one result.
+          {/* The first answer can take a few seconds while the API wakes from idle. */}
+          {pending ? "Scoring..." : "Enter your age, sex, and one result."}
         </p>
       ) : (
         <Report report={report} />

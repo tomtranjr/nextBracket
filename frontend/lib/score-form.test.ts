@@ -11,6 +11,7 @@ import {
   parseReps,
   parseResult,
   parseTimeText,
+  timeReadAsText,
   whtrFromInches,
   type FormState,
 } from "@/lib/score-form";
@@ -53,8 +54,40 @@ describe("parseTimeText", () => {
     expect(parseTimeText("")).toEqual({ empty: true });
   });
 
-  it.each(["15:7", "15", "15:60", "abc"])("rejects %s", (text) => {
-    expect(parseTimeText(text)).toMatchObject({ ok: false, error: "Use m:ss, for example 15:40." });
+  // Phone keypads have no ":" key, so the form also reads a dot or digits only.
+  it.each([
+    ["15.40", 940],
+    ["1540", 940],
+    ["540", 340],
+    ["130", 90],
+    [" 15.40 ", 940],
+  ])("reads %s as %i seconds", (text, seconds) => {
+    expect(parseTimeText(text)).toEqual(ok(seconds));
+  });
+
+  // "15.4" could be 15:04 or 15:40, and "15" could be minutes or seconds, so both stay errors.
+  it.each(["15:7", "15", "15:60", "abc", "15.4", "15.400", "1560", "12345", "15.60", ".40"])(
+    "rejects %s",
+    (text) => {
+      expect(parseTimeText(text)).toMatchObject({
+        ok: false,
+        error: "Use m:ss, for example 15:40 or 1540.",
+      });
+    },
+  );
+});
+
+describe("timeReadAsText", () => {
+  it.each([
+    ["1540", "15:40"],
+    ["15.40", "15:40"],
+    ["130", "1:30"],
+  ])("shows %s as %s", (text, shown) => {
+    expect(timeReadAsText(text)).toBe(shown);
+  });
+
+  it.each(["15:40", "", "abc", "15.4"])("returns null for %s", (text) => {
+    expect(timeReadAsText(text)).toBeNull();
   });
 });
 

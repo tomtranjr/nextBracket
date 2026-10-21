@@ -36,13 +36,34 @@ export function parseReps(text: string): Parsed {
   return { ok: true, value: Number(t) };
 }
 
+// Phone number keypads have no ":" key, so the form also reads "15.40" and "1540". Both need
+// exactly two digits for the seconds: "15.4" could mean 15:04 or 15:40, and "15" could be
+// minutes or seconds, so those stay errors. `parseTime` in lib/time.ts still reads only m:ss,
+// the same as the backend.
+const DOT_TIME = /^(\d{1,3})\.(\d{2})$/;
+const DIGITS_TIME = /^(\d{1,2})(\d{2})$/;
+
+/** Return the text as m:ss when it uses a phone-friendly shape, else the text unchanged. */
+function toMinutesSeconds(text: string): string {
+  const t = text.trim();
+  const match = DOT_TIME.exec(t) ?? DIGITS_TIME.exec(t);
+  return match === null ? t : `${match[1]}:${match[2]}`;
+}
+
 export function parseTimeText(text: string): Parsed {
   if (text.trim() === "") return { empty: true };
   try {
-    return { ok: true, value: parseTime(text) };
+    return { ok: true, value: parseTime(toMinutesSeconds(text)) };
   } catch {
-    return fail("Use m:ss, for example 15:40.");
+    return fail("Use m:ss, for example 15:40 or 1540.");
   }
+}
+
+/** The m:ss the form read ("15:40") for a valid time not typed as m:ss, else null. */
+export function timeReadAsText(text: string): string | null {
+  const shown = toMinutesSeconds(text);
+  if (shown === text.trim() || !("value" in parseTimeText(text))) return null;
+  return shown;
 }
 
 /** Return hundredths, cut by string so there is no float error: "0.52" gives 52, "0.5486" gives 54. */

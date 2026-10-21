@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Planner } from "@/components/Planner";
 import { ScoreResult } from "@/components/ScoreResult";
@@ -13,6 +13,7 @@ import {
   initialFormState,
   MAX_AGE,
   MIN_AGE,
+  timeReadAsText,
   truncatedRatioText,
 } from "@/lib/score-form";
 import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
@@ -28,11 +29,17 @@ const scoreCall = (key: string, signal: AbortSignal) =>
 export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
 
+  // The API scales to zero when idle, so wake it while the person types. /health is not rate
+  // limited and sends no form data. A failure here is ignored: the real call reports its own.
+  useEffect(() => {
+    api.health().catch(() => {});
+  }, []);
+
   const built = buildScoreRequest(state);
   const { request, errors, whtr } = built;
   // The key is a string, so the debounce and the effect compare by value, not by identity.
   const key = request === null ? null : JSON.stringify(request);
-  const { value: report, error, pending } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
+  const { value: report, error, pending, retry } = useLiveAnswer(key, scoreCall, DEBOUNCE_MS);
 
   function update(change: (next: FormState) => void) {
     setState((previous) => {
@@ -118,7 +125,7 @@ export function Calculator() {
         )}
       </form>
 
-      <ScoreResult report={report} error={error} pending={pending} />
+      <ScoreResult report={report} error={error} pending={pending} onRetry={retry} />
       <Planner state={state} built={built} />
     </div>
   );
@@ -143,6 +150,10 @@ function ComponentFields({
 }: ComponentFieldsProps) {
   const chosen = component.events.find((e) => e.key === event) ?? component.events[0];
   const placeholder = { reps: "Reps", time: "m:ss", ratio: "0.50" }[chosen.kind];
+  // Phone number keypads have no ":" key. The decimal keypad has ".", and the form reads
+  // "15.40" and "1540" too, so a time can be typed on any phone.
+  const inputMode = chosen.kind === "reps" ? "numeric" : "decimal";
+  const readAs = chosen.kind === "time" ? timeReadAsText(text) : null;
 
   return (
     <fieldset className="flex flex-col gap-3">
@@ -163,10 +174,11 @@ function ComponentFields({
       )}
       <TextField
         label={chosen.label}
-        inputMode={chosen.kind === "ratio" ? "decimal" : "numeric"}
+        inputMode={inputMode}
         placeholder={placeholder}
         value={text}
         error={error}
+        note={readAs === null ? null : `Read as ${readAs}.`}
         onChange={onText}
       />
     </fieldset>

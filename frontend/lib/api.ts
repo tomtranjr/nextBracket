@@ -26,11 +26,16 @@ export class ApiError extends Error {
   }
 }
 
-/** Text for a failed call. A 422 detail is written for a person. Anything else means no answer. */
+/**
+ * Text for a failed call. A 422 detail is written for a person. The rest say what kind of
+ * failure it was, so a rate limit does not read like an outage. The 429 text is fixed: the
+ * API does not expose `Retry-After` to the browser through CORS.
+ */
 export function errorMessage(error: unknown): string {
-  return error instanceof ApiError && error.status === 422
-    ? error.detail
-    : "Cannot reach the scoring service. Try again in a moment.";
+  if (!(error instanceof ApiError)) return "Cannot reach the scoring service.";
+  if (error.status === 422) return error.detail;
+  if (error.status === 429) return "Too many requests. Wait a minute, then try again.";
+  return "The scoring service had an error.";
 }
 
 interface FieldError {
