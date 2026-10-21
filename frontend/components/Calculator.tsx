@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Planner } from "@/components/Planner";
 import { ScoreResult } from "@/components/ScoreResult";
@@ -28,6 +28,12 @@ const scoreCall = (key: string, signal: AbortSignal) =>
 
 export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
+
+  // The API scales to zero when idle, so wake it while the person types. /health is not rate
+  // limited and sends no form data. A failure here is ignored: the real call reports its own.
+  useEffect(() => {
+    api.health().catch(() => {});
+  }, []);
 
   const built = buildScoreRequest(state);
   const { request, errors, whtr } = built;

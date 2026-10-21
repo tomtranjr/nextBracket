@@ -58,7 +58,8 @@ export function ScoreResult({ report, error, pending }: Props) {
         </p>
       ) : report === null ? (
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Enter your age, sex, and one result.
+          {/* The first answer can take a few seconds while the API wakes from idle. */}
+          {pending ? "Scoring..." : "Enter your age, sex, and one result."}
         </p>
       ) : (
         <Report report={report} />
