@@ -5,18 +5,20 @@ import { useEffect, useState } from "react";
 import { Planner } from "@/components/Planner";
 import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
+import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
 import { COMPONENTS, type ComponentInfo } from "@/lib/events";
 import {
   buildScoreRequest,
+  emptyInput,
   formatRatio,
   initialFormState,
   MAX_AGE,
   MIN_AGE,
-  timeReadAsText,
+  parseMinutesSeconds,
   truncatedRatioText,
 } from "@/lib/score-form";
-import type { FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
+import type { ComponentInput, FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
 import type { ScoreRequest, Sex } from "@/lib/types";
 import { useLiveAnswer } from "@/lib/use-live-answer";
 
@@ -112,14 +114,15 @@ export function Calculator() {
           <ComponentFields
             key={component.key}
             component={component}
-            event={state.components[component.key].event}
-            text={state.components[component.key].text}
+            input={state.components[component.key]}
             error={errors[component.key]}
             onEvent={(event) =>
               // A new event has a different unit, so the old text no longer applies.
-              update((s) => void (s.components[component.key] = { event, text: "" }))
+              update((s) => void (s.components[component.key] = emptyInput(event)))
             }
-            onText={(text) => update((s) => void (s.components[component.key].text = text))}
+            onInput={(field, text) =>
+              update((s) => void (s.components[component.key][field] = text))
+            }
           />
           ),
         )}
@@ -133,27 +136,14 @@ export function Calculator() {
 
 interface ComponentFieldsProps {
   component: ComponentInfo;
-  event: string;
-  text: string;
+  input: ComponentInput;
   error: string | undefined;
   onEvent: (event: string) => void;
-  onText: (text: string) => void;
+  onInput: (field: "text" | "minutes" | "seconds", text: string) => void;
 }
 
-function ComponentFields({
-  component,
-  event,
-  text,
-  error,
-  onEvent,
-  onText,
-}: ComponentFieldsProps) {
-  const chosen = component.events.find((e) => e.key === event) ?? component.events[0];
-  const placeholder = { reps: "Reps", time: "m:ss", ratio: "0.50" }[chosen.kind];
-  // Phone number keypads have no ":" key. The decimal keypad has ".", and the form reads
-  // "15.40" and "1540" too, so a time can be typed on any phone.
-  const inputMode = chosen.kind === "reps" ? "numeric" : "decimal";
-  const readAs = chosen.kind === "time" ? timeReadAsText(text) : null;
+function ComponentFields({ component, input, error, onEvent, onInput }: ComponentFieldsProps) {
+  const chosen = component.events.find((e) => e.key === input.event) ?? component.events[0];
 
   return (
     <fieldset className="flex flex-col gap-3">
@@ -172,17 +162,34 @@ function ComponentFields({
           onChange={onEvent}
         />
       )}
-      <TextField
-        label={chosen.label}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        value={text}
-        error={error}
-        note={readAs === null ? null : `Read as ${readAs}.`}
-        onChange={onText}
-      />
+      {chosen.kind === "time" ? (
+        <TimeField
+          label={chosen.label}
+          minutes={input.minutes}
+          seconds={input.seconds}
+          error={error}
+          bad={timeBadBoxes(input)}
+          onMinutes={(text) => onInput("minutes", text)}
+          onSeconds={(text) => onInput("seconds", text)}
+        />
+      ) : (
+        <TextField
+          label={chosen.label}
+          inputMode={chosen.kind === "reps" ? "numeric" : "decimal"}
+          placeholder={chosen.kind === "reps" ? "Reps" : "0.50"}
+          value={input.text}
+          error={error}
+          onChange={(text) => onInput("text", text)}
+        />
+      )}
     </fieldset>
   );
+}
+
+// The error text comes from `buildScoreRequest`. This only says which box to mark red.
+function timeBadBoxes(input: ComponentInput) {
+  const parsed = parseMinutesSeconds(input.minutes, input.seconds);
+  return "bad" in parsed && parsed.bad !== undefined ? parsed.bad : [];
 }
 
 interface BodyCompFieldsProps {

@@ -45,8 +45,8 @@ frontend/           Next.js site
   lib/
     api.ts            typed client for the API
     types.ts          request and response types, copied by hand from models.py
-    time.ts           mm:ss to seconds, same rules as timeparse.py
-    score-form.ts     reads the form; times also as 15.40 or 1540, since phone keypads have no ":"
+    time.ts           seconds to m:ss for display
+    score-form.ts     reads the form; times come from a minutes box and a seconds box
 ```
 
 Policy search and the chat agent are planned. They go in `app/rag/` and `app/agent/`.
@@ -154,7 +154,7 @@ npm ci
 npm run dev
 ```
 
-The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes waist and height in inches first, or the ratio. The site truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires, and says so on screen. Each score row shows a green check, an amber minus, or a red X, with a short note. Green means the component minimum is met, or full points for body composition. Amber means partial points for body composition. Red means the minimum is missed, or 0 points for body composition. Age and sex start blank on purpose. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
+The site listens on `http://localhost:3000`. Enter your age, sex, and results. Times use a minutes box and a seconds box, with no ":" to type. A blank box counts as 0, and seconds must be 0 to 59. The form scores them live against the API, so keep the API running. Body composition takes waist and height in inches first, or the ratio. The site truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires, and says so on screen. Each score row shows a green check, an amber minus, or a red X, with a short note. Green means the component minimum is met, or full points for body composition. Amber means partial points for body composition. Red means the minimum is missed, or 0 points for body composition. Age and sex start blank on purpose. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
 
 Checks for the website:
 

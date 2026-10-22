@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildScoreRequest,
+  emptyInput,
   initialFormState,
   formatRatio,
   parseAge,
@@ -10,8 +11,7 @@ import {
   truncatedRatioText,
   parseReps,
   parseResult,
-  parseTimeText,
-  timeReadAsText,
+  parseMinutesSeconds,
   whtrFromInches,
   type FormState,
 } from "@/lib/score-form";
@@ -45,49 +45,51 @@ describe("parseReps", () => {
   });
 });
 
-describe("parseTimeText", () => {
-  it("reads m:ss as seconds", () => {
-    expect(parseTimeText("15:40")).toEqual(ok(940));
-  });
-
-  it("treats blank as empty", () => {
-    expect(parseTimeText("")).toEqual({ empty: true });
-  });
-
-  // Phone keypads have no ":" key, so the form also reads a dot or digits only.
+describe("parseMinutesSeconds", () => {
   it.each([
-    ["15.40", 940],
-    ["1540", 940],
-    ["540", 340],
-    ["130", 90],
-    [" 15.40 ", 940],
-  ])("reads %s as %i seconds", (text, seconds) => {
-    expect(parseTimeText(text)).toEqual(ok(seconds));
+    ["15", "40", 940],
+    ["0", "0", 0],
+    ["999", "59", 59999],
+    ["1", "5", 65],
+    ["1", "05", 65],
+    [" 15 ", " 40 ", 940],
+  ])("reads %j and %j as %i seconds", (minutes, seconds, total) => {
+    expect(parseMinutesSeconds(minutes, seconds)).toEqual(ok(total));
   });
 
-  // "15.4" could be 15:04 or 15:40, and "15" could be minutes or seconds, so both stay errors.
-  it.each(["15:7", "15", "15:60", "abc", "15.4", "15.400", "1560", "12345", "15.60", ".40"])(
-    "rejects %s",
-    (text) => {
-      expect(parseTimeText(text)).toMatchObject({
-        ok: false,
-        error: "Use m:ss, for example 15:40 or 1540.",
-      });
-    },
-  );
-});
-
-describe("timeReadAsText", () => {
-  it.each([
-    ["1540", "15:40"],
-    ["15.40", "15:40"],
-    ["130", "1:30"],
-  ])("shows %s as %s", (text, shown) => {
-    expect(timeReadAsText(text)).toBe(shown);
+  it("treats both boxes blank as empty", () => {
+    expect(parseMinutesSeconds("", "")).toEqual({ empty: true });
+    expect(parseMinutesSeconds(" ", " ")).toEqual({ empty: true });
   });
 
-  it.each(["15:40", "", "abc", "15.4"])("returns null for %s", (text) => {
-    expect(timeReadAsText(text)).toBeNull();
+  it("counts one blank box as 0", () => {
+    expect(parseMinutesSeconds("15", "")).toEqual(ok(900));
+    expect(parseMinutesSeconds("", "45")).toEqual(ok(45));
+  });
+
+  it.each(["abc", "1.5", "-1", "1000", "15:40"])("rejects minutes %j", (minutes) => {
+    expect(parseMinutesSeconds(minutes, "40")).toEqual({
+      ok: false,
+      error: "Minutes must be a whole number, 0 to 999.",
+      bad: ["minutes"],
+    });
+  });
+
+  // No carry: 60 or more is a typo to fix, not extra minutes.
+  it.each(["60", "75", "99", "100", "abc", "4.5", "-1"])("rejects seconds %j", (seconds) => {
+    expect(parseMinutesSeconds("15", seconds)).toEqual({
+      ok: false,
+      error: "Seconds must be a whole number, 0 to 59.",
+      bad: ["seconds"],
+    });
+  });
+
+  it("marks both boxes when both are bad", () => {
+    expect(parseMinutesSeconds("x", "75")).toEqual({
+      ok: false,
+      error: "Use whole numbers: minutes 0 to 999, seconds 0 to 59.",
+      bad: ["minutes", "seconds"],
+    });
   });
 });
 
@@ -180,9 +182,10 @@ describe("formatRatio", () => {
 
 describe("parseResult", () => {
   it("picks the parser from the event kind", () => {
-    expect(parseResult("reps", "30")).toEqual(ok(30));
-    expect(parseResult("time", "1:30")).toEqual(ok(90));
-    expect(parseResult("ratio", "0.50")).toEqual(ok(50));
+    const input = { event: "any", text: "30", minutes: "1", seconds: "30" };
+    expect(parseResult("reps", input)).toEqual(ok(30));
+    expect(parseResult("time", input)).toEqual(ok(90));
+    expect(parseResult("ratio", { ...input, text: "0.50" })).toEqual(ok(50));
   });
 });
 
@@ -190,7 +193,8 @@ function filled(change: (state: FormState) => void): FormState {
   const state = initialFormState();
   state.age = "27";
   state.sex = "M";
-  state.components.cardio.text = "15:40";
+  state.components.cardio.minutes = "15";
+  state.components.cardio.seconds = "40";
   change(state);
   return state;
 }
@@ -212,7 +216,9 @@ describe("buildScoreRequest", () => {
   });
 
   it("sends nothing until one result is valid", () => {
-    expect(buildScoreRequest(filled((s) => (s.components.cardio.text = ""))).request).toBeNull();
+    expect(
+      buildScoreRequest(filled((s) => (s.components.cardio = emptyInput("run_2mile")))).request,
+    ).toBeNull();
   });
 
   it("builds a request from partial results", () => {
@@ -229,8 +235,8 @@ describe("buildScoreRequest", () => {
   it("uses the chosen event of each component", () => {
     const built = buildScoreRequest(
       filled((s) => {
-        s.components.cardio = { event: "hamr_20m", text: "60" };
-        s.components.core = { event: "forearm_plank", text: "2:00" };
+        s.components.cardio = { ...emptyInput("hamr_20m"), text: "60" };
+        s.components.core = { ...emptyInput("forearm_plank"), minutes: "2" };
         s.whtr.mode = "ratio";
         s.components.body_comp.text = "0.49";
       }),
@@ -262,7 +268,7 @@ describe("buildScoreRequest", () => {
   });
 
   it("sends nothing when the only result is bad", () => {
-    const built = buildScoreRequest(filled((s) => (s.components.cardio.text = "15:7")));
+    const built = buildScoreRequest(filled((s) => (s.components.cardio.seconds = "75")));
     expect(built.request).toBeNull();
     expect(built.errors.cardio).toBeDefined();
   });
