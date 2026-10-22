@@ -174,7 +174,7 @@ jobs:
             exit 1
           fi
 
-          # A 27 year old male: 15:40 run, 45 push-ups, 50 sit-ups, WHtR 0.49. The README shows
+          # A 27 year old male: 15:40 run, 45 push-ups, 50 sit-ups, WHtR 0.49. docs/developer-guide.md shows
           # the same request. A change in the answer fails the deploy.
           curl -fsS -X POST "$candidate/score" -H 'content-type: application/json' \
             -d '{"profile":{"age":27,"sex":"M"},"results":{"values":{"run_2mile":940,"push_up":45,"sit_up":50,"whtr":49}}}' \

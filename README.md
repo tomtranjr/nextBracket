@@ -1,438 +1,91 @@
 # Next Bracket
 
-Physical Fitness Assessment (PFA) scoring and planning for United States Air Force Airmen.
+[![ci](https://github.com/tomtranjr/nextBracket/actions/workflows/ci.yml/badge.svg)](https://github.com/tomtranjr/nextBracket/actions/workflows/ci.yml)
+
+**Score your Air Force PFA and see exactly what it takes to reach the next bracket.**
+
+Try it: **[nextbracket-five.vercel.app](https://nextbracket-five.vercel.app)**. Free, no login, works on your phone.
 
 ## The problem
 
-Three things get in the way when Airmen prepare for a PFA:
+Every Airman takes the Physical Fitness Assessment (PFA). The scoring charts are 11 pages of tables. Today's calculators read those tables for you and hand back one number. They don't answer the question Airmen actually ask: **"What do I need to do to pass, or to hit 90?"**
 
-1. **Scoring means searching a chart.** The official scoring charts (effective 1 Mar 26) are long tables. Finding your points for your age, sex, and event means paging through a PDF.
-2. **Planning means working the charts backward.** Current calculators take your results and return one total. To see what it takes to pass or reach 90, you run the "what if" math yourself and track where you can gain points.
-3. **Policy answers disagree.** Questions like "Can I retest early?", "What if I'm on a profile for the run?", and "I just got back from deployment. Do I need to test right away?" are answered in [DAFMAN 36-2905](https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf), the manual that governs the fitness program. The manual is long and hard to search, so the same question often gets different answers.
+To answer that, you work the charts backward by hand. Policy questions are worse. "Can I retest early?" or "Do I test right after a deployment?" get different answers from different people, because the rule is buried in a 116-page manual.
 
-## What it does
+| | Today's calculators | Next Bracket |
+| --- | --- | --- |
+| Score | One total | The total, plus each component's points, minimum, and gap |
+| Planning | Work the charts backward yourself | Set a target and get three ways to reach it |
+| Trust | No source shown | Every score is stamped with the chart version it used |
+| Policy | Ask around | An answer that cites the DAFMAN paragraph *(in progress)* |
 
-Next Bracket answers those three problems:
+## See it work
 
-1. **Score it.** Enter your age, sex, and results. You get your PFA score from the official charts.
-2. **Plan the next bracket.** Set a target, such as passing or 90. You see what you need on each event to reach it.
-3. **Cite the rule.** Ask a policy question. The answer includes the DAFMAN 36-2905 paragraph number, so you can check the source. (Planned)
+<img src="docs/screenshot.png" alt="Next Bracket on a phone: a score of 84.5 and three plans to reach 90" width="320">
 
-It is free, needs no login, and stores nothing you type.
+A 27 year old male with a 15:40 run, 45 push-ups, and 50 sit-ups scores 84.5. Set a target of 90 and the planner shows three ways to get there. One way is to cut the run to 13:54. Another, "quick wins," is to run 14:13 and do one more push-up.
 
-This is not an official Air Force tool. Your Unit Fitness Assessment Cell (UFAC), Unit Fitness Program Manager (UFPM), and the current DAFMAN have the final word.
+## What it does today
+
+- **Scores as you type.** All 8 events, every age band, both sexes, and the AFSPECWAR/EOD chart. Each component shows whether you met its minimum and by how much.
+- **Plans the next bracket.** Pick a target such as 75 or 90. You get three options: raise one event, take the quick wins, or spread the work across events. Tests re-score every option to prove it hits the target and meets every minimum.
+- **Follows the regulation to the letter.** Enter your waist and height and the app truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires. It never rounds up in your favor.
+- **Built for the track, not the desk.** Type a run time as `15:40`, `15.40`, or `1540` on a phone keypad. Nothing you type is stored or logged.
 
 ## Why I built this
 
-I am a Peer Fitness Leader (PFL) for the maintenance group at the 129th Rescue Wing. Questions about PFA come up all the time. We ask around, go in loops, and end up with different interpretations of the same rule. I want one place where every answer shows its source. I am building it for my wing first, but the charts and the regulation apply to the whole Air Force.
+I'm a Peer Fitness Leader for the maintenance group at the 129th Rescue Wing. PFA questions come up every week. We ask around, go in circles, and end up with different readings of the same rule. I wanted one place where every answer shows its source.
 
-## How to use it
+I built it for my wing first. The charts and the regulation apply to the whole Air Force.
 
-The website is not live yet. When it is:
+## Try it and tell me
 
-1. Open it on your phone. No account.
-2. Enter your age and sex, then pick your events (for example the 2 mile run or the HAMR).
-3. Type your results. The score updates as you type.
-4. Set a target to see a few ways to reach it.
-5. Ask a policy question. Each answer cites a paragraph.
-6. Print a one-page report for your PFL or supervisor.
+I'm now sharing Next Bracket with Airmen at the 129th Rescue Wing for feedback. If you use it, I want to hear what works and what doesn't.
 
-Developers can use the API today. See the [developer guide](#developer-guide).
+- Use it: [nextbracket-five.vercel.app](https://nextbracket-five.vercel.app)
+- Report a wrong score or a bug: [bug report form](https://github.com/tomtranjr/nextBracket/issues/new?template=bug_report.yml). For a wrong score, give your age, sex, event, result, and the points you expected. Do not include your name, unit, or medical details.
 
-## Goals
-
-- Every answer shows its source: a chart version for scores, a paragraph number for policy.
-- Numbers never come from AI. They come from tested code and the official charts.
-- The calculator works with no AI at all.
-- It works well on a phone.
-- It stores nothing you type.
-
-## Where it stands
-
-Done:
-
-- The website has a live calculator. It scores as you type.
-- The website has a target planner. Pick a target total and see the options from `/plan`.
-- The official charts are turned into data and checked by hand against the PDF.
-- The calculator scores all 8 events, every age band, and AFSPECWAR/EOD.
-- The target planner gives three kinds of options: one event, quick wins, and balanced.
-- The API serves `/health`, `/versions`, `/score`, `/plan`, and `/standards`.
-- CI runs lint, type checks, and the backend and website tests on every push.
-
-The API runs in a Docker image, locally with `docker compose`.
-
-Next: a first public release.
-
-Later: the policy chat, the printable report, and the 2 km walk and body fat checks.
-
-## Future ideas
-
-A training plan is not in scope yet. It would take your current scores, your target, the weeks until your test, and the days you can train. It would build a plan from published exercise science and cite its sources, the same way the chat cites DAFMAN. It would not be medical advice, and it would not help anyone get around a profile.
-
-## Report a problem
-
-Found a wrong score, a bug, or an unclear doc? Open an issue with the [bug report form](https://github.com/tomtranjr/nextBracket/issues/new?template=bug_report.yml). For a wrong score, give your age, sex, event, and result, and the points you expected. Do not include your name, unit, or medical details.
-
----
-
-# Developer guide
-
-## Architecture
-
-Scores and targets never go through AI. They come straight from the charts. The chat (planned) uses the same calculator for numbers and quotes DAFMAN for rules.
+## How it's built
 
 ```mermaid
 flowchart LR
     U[Airman on a phone] --> W[Website]
     W -->|scores and targets| C[Calculator<br/>official charts]
-    W -->|policy questions| A[Chat assistant]
+    W -->|policy questions| A[Chat assistant<br/>in progress]
     A -->|needs a number| C
     A -->|needs a rule| D[DAFMAN 36-2905<br/>search]
-    C --> R[Score, options,<br/>printable report]
+    C --> R[Score and<br/>options]
     D --> Q[Answer with<br/>paragraph number]
 ```
 
-The website lives in `frontend/`. The backend lives in `backend/`.
+The design choices that matter:
 
-```
-backend/
-  app/
-    models.py       Pydantic schemas shared everywhere
-    config.py       settings from NEXTBRACKET_* environment variables
-    main.py         creates the FastAPI app
-    core/           pure functions, no I/O, no LLM
-      standards.py    parse the standards file, find a table, pick a version
-      scoring.py      calculate_score
-      planning.py     plan_to_target
-      lookup.py       get_standards
-      timeparse.py    mm:ss to seconds
-    api/
-      routes.py       the HTTP endpoints
-      deps.py         the only place that reads files and the clock
-      ratelimit.py    in-memory rate limit (per client and global)
-  data/
-    standards/      versioned scoring JSON (2026-03-01.json)
-    sources/        the official charts PDF
-  scripts/          extract_tables.py turns the charts PDF into JSON
-  tests/
-frontend/           Next.js site
-  app/              routes and layout
-  lib/
-    api.ts            typed client for the API
-    types.ts          request and response types, copied by hand from models.py
-    time.ts           mm:ss to seconds, same rules as timeparse.py
-    score-form.ts     reads the form; times also as 15.40 or 1540, since phone keypads have no ":"
-```
+- **The AI never computes a score.** Every number comes from tested Python functions. The planned chat assistant will call the same calculator as a tool, and the calculator works with no AI at all.
+- **The data is extracted, then checked by hand.** A script turns the official charts PDF into 144 versioned tables. I checked the values against the PDF, and the tests score every bracket in every table.
+- **A pure core.** Scoring and planning are pure functions with no disk, clock, or network access. The FastAPI layer is thin, so the logic is easy to test and to reuse from an agent.
+- **Measure before adding.** For the AI work, I write the eval first. A component like reranking goes in only when an eval shows it helps, with before and after numbers.
+- **Shipped like production.** CI runs lint, type checks, and tests on every push. Each deploy starts a new Cloud Run revision with no traffic, checks `/health` and a known score, and only then moves traffic over. The API is rate limited and stores no user input.
 
-Policy search and the chat agent are not built yet. Search and chat go in `app/rag/` and `app/agent/`.
-
-## How it works
-
-- **Standards data.** `scripts/extract_tables.py` reads the charts PDF and writes `data/standards/<effective-date>.json`. The values are then checked by hand against the PDF.
-- **Parse, don't validate.** `app/models.py` loads that file with strict Pydantic models. A file that parses has full coverage: every event, both sexes, and age bands with no gaps.
-- **Pure core.** Each function in `app/core/` takes the parsed standards, a `Profile`, and results. It reads no disk and no clock, so tests need no files.
-- **Thin API.** `routes.py` picks the standards version, calls one core function, and turns a `ValueError` into a 422. `deps.py` reads the files and the clock. Tests swap these with `app.dependency_overrides`.
-- **Version rule.** With no `version` in the request, the API uses the newest standards file whose effective date is today or earlier.
-- **Units are integers.** Reps, shuttles, and seconds. WHtR is in hundredths, so 0.49 is sent as `49`.
-- **Scoring.** Each component takes one event. The composite is 0 to 100. Excellent is 90 or more. Satisfactory is 75 to 89.5. A missed component minimum is Unsatisfactory. A component with no result is listed in `not_scored`, and then there is no total.
-- **Planning.** `plan_to_target` keeps each component's event (it never switches run to shuttle). A component with no result starts at its minimum. Options never repeat.
-
-Events by component:
-
-| Component | Max points | Minimum | Events |
-| --- | --- | --- | --- |
-| `cardio` | 50 | yes | `run_2mile` (seconds), `hamr_20m` (shuttles) |
-| `strength` | 15 | yes | `push_up`, `hand_release_push_up` (reps) |
-| `core` | 15 | yes | `sit_up`, `cross_leg_reverse_crunch` (reps), `forearm_plank` (seconds) |
-| `body_comp` | 20 | no | `whtr` (hundredths) |
-
-## Tech stack
-
-| Part | Tool | Status |
+| Part | Tools | Status |
 | --- | --- | --- |
-| API | Python 3.13, FastAPI, Pydantic | built |
-| Calculator | Pure Python functions and versioned scoring tables (JSON) | built |
-| Testing and quality | pytest, ruff, mypy, GitHub Actions | built |
-| Container | Docker, Docker Compose | built |
-| Hosting | Google Cloud Run (API), Vercel (website) | built |
-| Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, deployed at https://nextbracket-five.vercel.app |
-| Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
-| Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
-| Evals and tracing | agent evals, LangSmith | planned |
+| Calculator and planner | Python 3.13, Pydantic, versioned JSON standards | Live |
+| API | FastAPI on Google Cloud Run, Docker | Live |
+| Website | Next.js, TypeScript, Tailwind on Vercel | Live |
+| CI/CD | GitHub Actions, pytest, ruff, mypy, Vitest | Live |
+| Policy search | Postgres with pgvector, full-text plus vector search | Planned |
+| Chat assistant | LangGraph agent with scoring, planning, and search tools | Planned |
+| Evals and tracing | Agent evals, LangSmith | Planned |
 
-## Set up and run the checks
+To run it locally, call the API, or see how it's deployed, read the [developer guide](docs/developer-guide.md).
 
-You need [uv](https://docs.astral.sh/uv/).
+## What's next
 
-```
-cd backend
-uv sync
-uv run ruff check . && uv run ruff format --check .
-uv run mypy app tests
-uv run pytest
-```
+1. The 2 km walk and body fat assessment checks.
+2. The cited policy chat: DAFMAN 36-2905 split by paragraph, hybrid search, and an agent with evals.
+3. A one-page printable report for your PFL or supervisor.
 
-CI runs the same four checks on every push.
+Later: a training plan that takes your scores, your target, and the weeks until your test, and cites its exercise science sources.
 
-## Run the server
+---
 
-```
-cd backend
-uv run uvicorn app.main:app --reload
-```
-
-The server listens on `http://localhost:8000`. Open `http://localhost:8000/docs` for the interactive API docs.
-
-To use a different folder of standards files, set `NEXTBRACKET_STANDARDS_DIR`.
-
-A browser may call the API only from the sites in `NEXTBRACKET_CORS_ORIGINS`. The value is a JSON list. The default is `["http://localhost:3000"]`, the local website.
-
-```
-NEXTBRACKET_CORS_ORIGINS='["https://example.app"]' uv run uvicorn app.main:app
-```
-
-### Rate limit
-
-The API limits requests to protect against floods and runaway cost. Each client address gets 60 requests a minute, and all clients together get 600. Past a limit, the API answers `429` with a `Retry-After` header (seconds to wait). `/health` and CORS preflight (`OPTIONS`) requests are never limited. A preflight runs no endpoint code, so it costs about the same as a `429`. Set `NEXTBRACKET_RATE_LIMIT_PER_IP` and `NEXTBRACKET_RATE_LIMIT_GLOBAL` to change the limits, and use `0` to turn one off.
-
-The counters live in memory, so they are exact only while one process serves all traffic. Cloud Run is set to a single instance for this reason. The limiter reads the client address from the last `X-Forwarded-For` entry, which Cloud Run sets. It keeps no address after the minute ends.
-
-### Run with Docker
-
-```
-docker compose up --build
-```
-
-The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
-
-### Deploy
-
-The API runs on Google Cloud Run. The `deploy` workflow starts after the `ci` workflow passes on `main`. You can also run it by hand from `main` with the "Run workflow" button. A manual run deploys only if `ci` passed for that commit.
-
-The workflow builds the image, tags it with the commit SHA, and pushes it to Artifact Registry. It then deploys a new revision with no traffic and calls `/health` and `/score` on it. Traffic moves to the new revision only if both answers are right. A failed check leaves the old revision live. The very first deploy is the exception, because Cloud Run cannot create a service without traffic.
-
-The workflow logs in with Workload Identity Federation, so the repository holds no key file. It reads these repository variables, which are not secrets: `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_DEPLOYER_SERVICE_ACCOUNT`, `GCP_RUNTIME_SERVICE_ACCOUNT`, and `CORS_ORIGINS`.
-
-The service runs at most one instance per revision and scales to zero when idle. One instance keeps the in-memory rate limit exact. During a deploy the new revision runs next to the live one for a short time, so up to two instances can run, each with its own counters. The first request after an idle period waits a few seconds for a cold start. The website calls `/health` when the page loads to start the API early, and shows "Scoring..." while it waits. A failed call shows what went wrong (no connection, too many requests, or a service error) and a "Try again" button.
-
-The workflow sets `NEXTBRACKET_CORS_ORIGINS` on every deploy from the `CORS_ORIGINS` variable, a JSON list such as `["https://nextbracket-five.vercel.app"]`. Each entry must be a scheme, a host, and an optional port, with no path, query, or trailing slash, the way a browser sends it. A missing or bad value stops the deploy, so the API never falls back to the localhost default by accident. The smoke test also checks that the first origin in the list gets its CORS header back.
-
-The website runs on Vercel. Vercel's GitHub integration builds `frontend/` and deploys every push to `main` to production. It does not wait for the `ci` workflow. `NEXT_PUBLIC_API_URL` is set in the Vercel project for Production only. Vercel also builds a preview for every other branch. A preview has its own URL, which is not in `CORS_ORIGINS`, so its form cannot reach the API. Previews only prove that the site builds.
-
-## Run the website
-
-You need Node (see `frontend/.nvmrc`) and the API running on `http://localhost:8000`.
-
-```
-cd frontend
-npm ci
-npm run dev
-```
-
-The site listens on `http://localhost:3000`. Enter your age, sex, and results. The form scores them live against the API, so keep the API running. Body composition takes waist and height in inches first, or the ratio. The site truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires, and says so on screen. Each score row shows a green check, an amber minus, or a red X, with a short note. Green means the component minimum is met, or full points for body composition. Amber means partial points for body composition. Red means the minimum is missed, or 0 points for body composition. Age and sex start blank on purpose. To point it at another API, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_URL`. Next.js reads this value at build time and sends it to the browser, so it must not hold a secret.
-
-Checks for the website:
-
-```
-npm run lint && npm run typecheck && npm test && npm run build
-```
-
-`frontend/lib/types.ts` is written by hand. When a model in `backend/app/models.py` changes, change the matching type there too.
-
-### Privacy
-
-Nothing you type is stored or logged. The site holds your inputs in the page only, and the API logs the method, path, and status, not the request body.
-
-The live site uses Vercel Web Analytics and Speed Insights to count page views and measure load speed. They send no form values, and the site sends no custom events. In local development they send nothing.
-
-Vercel and Cloud Run keep their own platform request logs, which include the client address. We do not control how long they keep them.
-
-## API reference
-
-| Method | Path | Body | Returns |
-| --- | --- | --- | --- |
-| GET | `/health` | none | `{"status": "ok"}` |
-| GET | `/versions` | none | the default version and all available versions |
-| POST | `/score` | `profile`, `results`, optional `version` | a score report |
-| POST | `/plan` | `profile`, `target`, optional `current`, optional `version` | ways to reach the target |
-| POST | `/standards` | `profile`, optional `event`, optional `version` | the charts for that member |
-
-Request fields:
-
-- `profile`: `{"age": 17 to 70, "sex": "M" or "F", "is_afspecwar_eod": false}`. The last key is optional.
-- `results` and `current`: `{"values": {"<event>": <integer>}}`. Give at most one event per component.
-- `target`: total points, 0 to 100.
-- `version`: a standards version such as `2026-03-01`.
-
-Status codes:
-
-- `200`: success. A target above the best total for the member is still 200, with `"status": "impossible"`.
-- `422`: bad input. This covers a missing field, an unknown key, an age outside 17 to 70, a negative result, a target above 100, an unknown event or version, and two events in one component.
-- `503`: `/versions` found no standards file in force today.
-
-## Try it with curl
-
-Start the server first. Pipe any command to `python3 -m json.tool` for readable output. Long responses below are shortened with `...`.
-
-### Health
-
-```
-curl -s localhost:8000/health
-```
-
-```json
-{"status":"ok"}
-```
-
-### Versions
-
-```
-curl -s localhost:8000/versions | python3 -m json.tool
-```
-
-```json
-{
-    "default": "2026-03-01",
-    "versions": [
-        {
-            "version": "2026-03-01",
-            "effective_date": "2026-03-01",
-            "source": "PFRA Scoring Charts.pdf (Final USAF PFRA Scoring, effective 1 Mar 26)"
-        }
-    ]
-}
-```
-
-### Score
-
-A 27 year old male: 15:40 run (940 seconds), 45 push-ups, 50 sit-ups, WHtR 0.49.
-
-```
-curl -s -X POST localhost:8000/score -H 'content-type: application/json' \
-  -d '{"profile":{"age":27,"sex":"M"},"results":{"values":{"run_2mile":940,"push_up":45,"sit_up":50,"whtr":49}}}' \
-  | python3 -m json.tool
-```
-
-```json
-{
-    "version": "2026-03-01",
-    "effective_date": "2026-03-01",
-    "components": [
-        {"component": "cardio", "event": "run_2mile", "result": 940, "points": 44.0, "max_points": 50, "minimum_met": true, "minimum": 1195, "minimum_gap": null, "full_points_at": 815, "full_points_gap": 125},
-        {"component": "strength", "event": "push_up", "result": 45, "points": 8.5, "max_points": 15, "minimum_met": true, "minimum": 28, "minimum_gap": null, "full_points_at": 63, "full_points_gap": 18},
-        {"component": "core", "event": "sit_up", "result": 50, "points": 12.0, "max_points": 15, "minimum_met": true, "minimum": 31, "minimum_gap": null, "full_points_at": 56, "full_points_gap": 6},
-        {"component": "body_comp", "event": "whtr", "result": 49, "points": 20.0, "max_points": 20, "minimum_met": null, "minimum": null, "minimum_gap": null, "full_points_at": 49, "full_points_gap": null}
-    ],
-    "not_scored": [],
-    "total": 84.5,
-    "category": "satisfactory",
-    "missed_minimums": []
-}
-```
-
-The real response prints each component over several lines. It is shown on one line here to save space. If you leave out an event, it appears in `not_scored`, and `total` and `category` are `null`.
-
-### Plan
-
-The same member, with a target of 90.
-
-```
-curl -s -X POST localhost:8000/plan -H 'content-type: application/json' \
-  -d '{"profile":{"age":27,"sex":"M"},"target":90,"current":{"values":{"run_2mile":940,"push_up":45,"sit_up":50,"whtr":49}}}' \
-  | python3 -m json.tool
-```
-
-```json
-{
-    "version": "2026-03-01",
-    "effective_date": "2026-03-01",
-    "target": 90.0,
-    "status": "options",
-    "current_total": 84.5,
-    "max_total": 100.0,
-    "assumed_components": [],
-    "options": [
-        {
-            "kind": "single_event",
-            "changes": [
-                {"component": "cardio", "event": "run_2mile", "unit": "seconds", "from_result": 940, "to_result": 834, "delta": -106, "from_points": 44.0, "to_points": 49.5}
-            ],
-            "projected_total": 90.0
-        },
-        ...
-    ]
-}
-```
-
-The response has four options: `single_event` for the run, `single_event` for push-ups, `quick_wins`, and `balanced`. Each one reaches 90.0. A `delta` of `-106` on the run means 106 seconds faster.
-
-`status` is one of `already_met`, `options`, or `impossible`. Leave out `current` to plan from the component minimums. Those components are then listed in `assumed_components`.
-
-### Standards
-
-The push-up chart for a 27 year old male.
-
-```
-curl -s -X POST localhost:8000/standards -H 'content-type: application/json' \
-  -d '{"profile":{"age":27,"sex":"M"},"event":"push_up"}' \
-  | python3 -m json.tool
-```
-
-```json
-{
-    "version": "2026-03-01",
-    "effective_date": "2026-03-01",
-    "passing_total": 75,
-    "components": [
-        {
-            "component": "strength",
-            "max_points": 15,
-            "has_minimum": true,
-            "tables": [
-                {
-                    "sex": "M",
-                    "age_min": 25,
-                    "age_max": 29,
-                    "event": "push_up",
-                    "unit": "reps",
-                    "higher_is_better": true,
-                    "component_minimum": 28,
-                    "brackets": [
-                        {"threshold": 63, "points": 15.0},
-                        {"threshold": 62, "points": 14.5},
-                        ...
-                    ]
-                }
-            ]
-        }
-    ]
-}
-```
-
-Leave out `event` to get every event. Run and HAMR then appear together under `cardio`.
-
-### Errors
-
-A target above 100:
-
-```
-curl -s -w '\n%{http_code}\n' -X POST localhost:8000/plan -H 'content-type: application/json' \
-  -d '{"profile":{"age":27,"sex":"M"},"target":150}'
-```
-
-```
-{"detail":[{"type":"less_than_equal","loc":["body","target"],"msg":"Input should be less than or equal to 100","input":150,"ctx":{"le":100.0}}]}
-422
-```
-
-An unknown event:
-
-```
-curl -s -w '\n%{http_code}\n' -X POST localhost:8000/standards -H 'content-type: application/json' \
-  -d '{"profile":{"age":27,"sex":"M"},"event":"nope"}'
-```
-
-```
-{"detail":"unknown event: 'nope'"}
-422
-```
+Next Bracket is not an official Air Force tool. Your Unit Fitness Assessment Cell (UFAC), Unit Fitness Program Manager (UFPM), and the current [DAFMAN 36-2905](https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf) have the final word.
