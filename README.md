@@ -30,7 +30,7 @@ A 27 year old male with a 15:40 run, 45 push-ups, and 50 sit-ups scores 84.5. Se
 - **Scores as you type.** All 8 events, every age band, both sexes, and the AFSPECWAR/EOD chart. Each component shows whether you met its minimum and by how much.
 - **Plans the next bracket.** Pick a target such as 75 or 90. You get three options: raise one event, take the quick wins, or spread the work across events. Tests re-score every option to prove it hits the target and meets every minimum.
 - **Follows the regulation to the letter.** Enter your waist and height and the app truncates the ratio to two decimals, as DAFMAN 36-2905 para 3.15.4.2 requires. It never rounds up in your favor.
-- **Built for the track, not the desk.** Type a run time as `15:40`, `15.40`, or `1540` on a phone keypad. Nothing you type is stored or logged.
+- **Built for the track, not the desk.** Run and plank times go in two boxes, minutes and seconds, so the phone number keypad is all you need. Nothing you type is stored or logged.
 
 ## Why I built this
 

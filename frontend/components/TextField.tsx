@@ -1,9 +1,10 @@
 import { useId } from "react";
 
-const INPUT =
+// Shared with TimeField, so every box looks the same.
+export const INPUT =
   "min-h-11 w-full rounded-md border bg-transparent px-3 text-base " +
   "border-zinc-300 dark:border-zinc-700";
-const INPUT_BAD = "border-red-600 dark:border-red-400";
+export const INPUT_BAD = "border-red-600 dark:border-red-400";
 
 interface TextFieldProps {
   label: string;
@@ -11,8 +12,6 @@ interface TextFieldProps {
   placeholder: string;
   value: string;
   error: string | undefined;
-  /** Plain help under the input, for example how the form read the text. */
-  note?: string | null;
   onChange: (text: string) => void;
 }
 
@@ -24,16 +23,10 @@ export function TextField({
   placeholder,
   value,
   error,
-  note,
   onChange,
 }: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
-  const noteId = `${id}-note`;
-  const describedBy = [
-    error === undefined ? null : errorId,
-    note ? noteId : null,
-  ].filter((part) => part !== null);
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id}>{label}</label>
@@ -45,18 +38,13 @@ export function TextField({
         placeholder={placeholder}
         value={value}
         aria-invalid={error !== undefined}
-        aria-describedby={describedBy.length === 0 ? undefined : describedBy.join(" ")}
+        aria-describedby={error === undefined ? undefined : errorId}
         className={`${INPUT} ${error === undefined ? "" : INPUT_BAD}`}
         onChange={(e) => onChange(e.target.value)}
       />
       {error !== undefined && (
         <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
           {error}
-        </p>
-      )}
-      {note && (
-        <p id={noteId} className="text-sm text-zinc-600 dark:text-zinc-400">
-          {note}
         </p>
       )}
     </div>

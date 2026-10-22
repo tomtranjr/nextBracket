@@ -52,14 +52,18 @@ describe("parseTarget", () => {
   });
 });
 
-// A form with age, sex, and the results given by event key.
+// A form with age, sex, and the results. `run` is "m:ss", split into the two time boxes.
 function formWith(texts: Partial<Record<string, string>>, ready = true): FormState {
   const state = initialFormState();
   if (ready) {
     state.age = "27";
     state.sex = "M";
   }
-  if (texts.run !== undefined) state.components.cardio.text = texts.run;
+  if (texts.run !== undefined) {
+    const [minutes, seconds] = texts.run.split(":");
+    state.components.cardio.minutes = minutes;
+    state.components.cardio.seconds = seconds;
+  }
   if (texts.pushUp !== undefined) state.components.strength.text = texts.pushUp;
   return state;
 }
