@@ -10,8 +10,8 @@ removes typing; it does not prove the numbers are right. It fails loudly on anyt
 
 Pages 1 to 8 hold the 8 events by age band and sex. Page 10 is the AFSPECWAR/EOD chart. It has one
 column per event and no sex or age. It is not copied. It is checked against the male under-25
-tables, and the JSON records that those tables apply (`afspecwar_eod`). The 2 km walk page uses
-another layout and is out of scope here.
+tables, and the JSON records that those tables apply (`afspecwar_eod`). Page 11 is the 2 km walk:
+one maximum time per sex and age band, with its own bands (`walk`).
 """
 
 import argparse
@@ -25,7 +25,7 @@ from typing import Any
 import pdfplumber
 
 from app.core.standards import parse_standards
-from app.models import SEXES, StandardsFile
+from app.models import SEXES, Sex, StandardsFile, WalkStandard
 
 BACKEND = Path(__file__).resolve().parent.parent
 DEFAULT_PDF = BACKEND / "data" / "sources" / "PFRA Scoring Charts.pdf"
@@ -78,6 +78,11 @@ PAGES: tuple[EventPage, ...] = (
 AFSPECWAR_PAGE_INDEX = 9
 AFSPECWAR_TITLE = "AFSPECWAR/EOD"
 AFSPECWAR_FIRST_DATA_ROW = 3
+
+WALK_PAGE_INDEX = 10
+WALK_TITLE = "2.0 Kilometer Walk"
+WALK_HEADER = "Age (yrs)"
+WALK_BANDS = 5
 AFSPECWAR_COLUMNS: dict[str, tuple[int, int, str, str]] = {
     "push_up": (0, 1, "reps", "Push-up"),
     "hand_release_push_up": (0, 2, "reps", "Hand Release"),
@@ -175,6 +180,43 @@ def parse_age_band(label: str) -> tuple[int, int | None]:
     if match := re.fullmatch(r"(\d+) and Over", text):
         return int(match.group(1)), None
     raise ValueError(f"unknown age band label: {label!r}")
+
+
+def parse_walk_age_band(label: str) -> tuple[int, int | None]:
+    """`< 30` -> (0, 29), `30-39` -> (30, 39), `60+` -> (60, None). Walk page labels only."""
+    text = "".join(label.split())
+    if match := re.fullmatch(r"<(\d+)", text):
+        return 0, int(match.group(1)) - 1
+    if match := re.fullmatch(r"(\d+)-(\d+)", text):
+        return int(match.group(1)), int(match.group(2))
+    if match := re.fullmatch(r"(\d+)\+", text):
+        return int(match.group(1)), None
+    raise ValueError(f"unknown walk age band label: {label!r}")
+
+
+def extract_walk(rows: list[list[str | None]]) -> list[WalkStandard]:
+    """Read the walk table: male band and time in columns 0-1, female band and time in 2-3.
+
+    Bands are whole years, like the scoring charts, so age 30 is in "30-39". DAFMAN 36-2905 has no
+    boundary rule for the walk.
+    """
+    header = next((i for i, row in enumerate(rows) if row[:1] == [WALK_HEADER]), None)
+    if header is None or rows[header][2] != WALK_HEADER:
+        raise ValueError(f"walk: no {WALK_HEADER!r} header for both sexes")
+    data = rows[header + 1 :]
+    if len(data) != WALK_BANDS:
+        raise ValueError(f"walk: expected {WALK_BANDS} age bands, found {len(data)}")
+    walk: list[WalkStandard] = []
+    columns: tuple[tuple[Sex, int], ...] = (("M", 0), ("F", 2))
+    for sex, col in columns:
+        for row in data:
+            label, time = (row[col], row[col + 1]) if len(row) == 4 else (None, None)
+            if label is None or time is None:
+                raise ValueError(f"walk: bad row {row!r}")
+            age_min, age_max = parse_walk_age_band(label)
+            max_time = parse_time(time.strip())
+            walk.append(WalkStandard(sex=sex, age_min=age_min, age_max=age_max, max_time=max_time))
+    return walk
 
 
 def _column_keys(
@@ -347,6 +389,13 @@ def extract_standards(pdf_path: Path) -> StandardsFile:
         if len(found) != 1:
             raise ValueError(f"AFSPECWAR/EOD: expected 1 table, found {len(found)}")
         check_afspecwar_matches(extract_afspecwar_columns(found[0]), tables)
+        walk_page = pdf.pages[WALK_PAGE_INDEX]
+        if WALK_TITLE not in (walk_page.extract_text() or ""):
+            raise ValueError(f"page {WALK_PAGE_INDEX + 1} is not the 2 km walk chart")
+        found = walk_page.extract_tables()
+        if len(found) != 1:
+            raise ValueError(f"walk: expected 1 table, found {len(found)}")
+        walk = extract_walk(found[0])
     # Building the model runs every structural check from the schema.
     return StandardsFile.model_validate(
         {
@@ -357,6 +406,7 @@ def extract_standards(pdf_path: Path) -> StandardsFile:
             "components": COMPONENTS,
             "afspecwar_eod": AFSPECWAR_EOD,
             "tables": tables,
+            "walk": walk,
         }
     )
 
@@ -368,6 +418,12 @@ def render_json(standards: StandardsFile) -> str:
     text = re.sub(
         r'\{\s+"threshold": (\d+),\s+"points": ([\d.]+)\s+\}',
         r'{"threshold": \1, "points": \2}',
+        text,
+    )
+    text = re.sub(
+        r'\{\s+"sex": "(\w)",\s+"age_min": (\d+),\s+'
+        r'"age_max": (\d+|null),\s+"max_time": (\d+)\s+\}',
+        r'{"sex": "\1", "age_min": \2, "age_max": \3, "max_time": \4}',
         text,
     )
     return text + "\n"
