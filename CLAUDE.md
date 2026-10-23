@@ -2,9 +2,9 @@
 
 PFA scoring and planning for Airmen. A stateless web app: a calculator, a cited policy chatbot, and a printable report. This file is the short version of the project rules.
 
-## Build plan
+## Work tracking
 
-If `_tmp/build-plan.md` exists, read it before starting work. It lists the PRs in order and their status. Update it when a PR starts or merges, and whenever we change the plan. Add a dated line to its Changes log.
+Work is tracked in Linear (team `NB`). Read the issue named in your task and the Agent Guide document in the Linear project before you start. Source data facts are in `docs/developer-guide.md`.
 
 ## Principles
 
@@ -31,7 +31,7 @@ frontend/         Next.js, TypeScript, Tailwind
   lib/            API client, API types, time parsing
 ```
 
-Check the build plan for what is built.
+Check the Linear project for what is built.
 
 ## Commands (run in `backend/`)
 
