@@ -4946,5 +4946,17 @@
         {"threshold": 11, "points": 35.0}
       ]
     }
+  ],
+  "walk": [
+    {"sex": "M", "age_min": 0, "age_max": 29, "max_time": 976},
+    {"sex": "M", "age_min": 30, "age_max": 39, "max_time": 978},
+    {"sex": "M", "age_min": 40, "age_max": 49, "max_time": 983},
+    {"sex": "M", "age_min": 50, "age_max": 59, "max_time": 1000},
+    {"sex": "M", "age_min": 60, "age_max": null, "max_time": 1018},
+    {"sex": "F", "age_min": 0, "age_max": 29, "max_time": 1042},
+    {"sex": "F", "age_min": 30, "age_max": 39, "max_time": 1048},
+    {"sex": "F", "age_min": 40, "age_max": 49, "max_time": 1069},
+    {"sex": "F", "age_min": 50, "age_max": 59, "max_time": 1091},
+    {"sex": "F", "age_min": 60, "age_max": null, "max_time": 1133}
   ]
 }

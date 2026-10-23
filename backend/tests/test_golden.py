@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from app.core.scoring import score_event
+from app.core.scoring import score_event, score_walk
 from app.core.standards import find_table, parse_standards
-from app.models import Sex, StandardsFile
+from app.models import Profile, Sex, StandardsFile
 
 ROOT = Path(__file__).parents[1]
 GOLDEN = Path(__file__).parent / "golden"
@@ -83,3 +83,20 @@ def test_run_39_points_uses_the_main_table(standards: StandardsFile) -> None:
     table = find_table(standards, "run_2mile", "M", 22)
     assert score_event(table, 1033) == (39.0, True)
     assert score_event(table, 1034) == (38.5, True)
+
+
+def test_walk_cases(standards: StandardsFile) -> None:
+    found: list[str] = []
+    count = 0
+    with (GOLDEN / "walk_cases.csv").open(newline="") as f:
+        for row in csv.DictReader(f):
+            count += 1
+            sex: Sex = "M" if row["sex"] == "M" else "F"
+            profile = Profile(
+                age=int(row["age"]), sex=sex, is_afspecwar_eod=row["is_afspecwar_eod"] == "true"
+            )
+            got = score_walk(standards, profile, int(row["result"])).passed
+            if got != (row["passed"] == "true"):
+                found.append(f"walk {row}: got passed={got}")
+    assert count >= 30
+    assert found == []

@@ -170,3 +170,44 @@ def test_load_standards_dir_rejects_duplicate_versions(
         (tmp_path / name).write_text(json.dumps(standards_dict))
     with pytest.raises(ValueError, match="duplicate standards versions"):
         load_standards_dir(tmp_path)
+
+
+# 2 km walk. M under 30 maximum is 16:16 = 976 s.
+WALKER = {"walk_2km": 976, "push_up": 63, "sit_up": 56, "whtr": 49}
+
+
+def test_score_walker(client: TestClient) -> None:
+    response = _score(client, results={"values": WALKER})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["walk"] == {"result": 976, "max_time": 976, "passed": True, "gap": None}
+    assert body["points_possible"] == 50
+    assert (body["total"], body["category"]) == (100.0, "satisfactory")
+    assert "cardio" not in [c["component"] for c in body["components"]]
+    assert len(body["assumptions"]) == 1
+    assert "3.7.3" in body["assumptions"][0]
+
+
+def test_score_walker_matches_core(client: TestClient) -> None:
+    standards = parse_standards((REAL_DIR / "2026-03-01.json").read_bytes())
+    expected = calculate_score(
+        standards, Profile(age=27, sex="M"), Results(values=WALKER)
+    ).model_dump(mode="json")
+    assert _score(client, results={"values": WALKER}).json() == expected
+
+
+def test_score_walk_fail(client: TestClient) -> None:
+    body = _score(client, results={"values": {**WALKER, "walk_2km": 977}}).json()
+    assert body["walk"]["gap"] == 1
+    assert body["category"] == "unsatisfactory"
+
+
+def test_score_non_walker_has_no_walk(client: TestClient) -> None:
+    body = _score(client).json()
+    assert (body["walk"], body["assumptions"], body["points_possible"]) == (None, [], 100)
+
+
+def test_score_walk_and_run_is_422(client: TestClient) -> None:
+    response = _score(client, results={"values": {**WALKER, "run_2mile": 940}})
+    assert response.status_code == 422
+    assert "two events for 'cardio'" in response.json()["detail"]

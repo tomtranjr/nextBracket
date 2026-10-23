@@ -12,6 +12,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Sex = Literal["M", "F"]
 SEXES: tuple[Sex, ...] = ("M", "F")
 
+# The 2 km walk is pass/fail with no points, so it is not a scored event in `components`.
+# It takes the place of this component (DAFMAN 36-2905 para 3.7.3).
+WALK_EVENT = "walk_2km"
+WALK_COMPONENT = "cardio"
+
 
 class _Strict(BaseModel):
     # strict: "63" is not an int. extra=forbid: a typo in a key fails loudly.
@@ -92,6 +97,26 @@ class AfspecwarEod(_Strict):
     events: list[str] = Field(min_length=1)
 
 
+class WalkStandard(_Strict):
+    """The 2 km walk maximum time for one sex and age band (DAFMAN 36-2905 Table 3.1).
+
+    The walk is only for members with an AF Form 469 that allows it (para 3.15.12.1). Its bands
+    (under 30, 30-39, ... 60+) differ from the 9 scoring bands, so they are stored as printed.
+    """
+
+    sex: Sex
+    age_min: int = Field(ge=0)
+    age_max: int | None = Field(ge=0)
+    # Seconds. A time at or under this passes.
+    max_time: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def _check_band(self) -> Self:
+        if self.age_max is not None and self.age_max < self.age_min:
+            raise ValueError(f"walk: age_max {self.age_max} is below age_min {self.age_min}")
+        return self
+
+
 class StandardsFile(_Strict):
     """One versioned set of scoring charts, e.g. `data/standards/2026-03-01.json`."""
 
@@ -102,6 +127,7 @@ class StandardsFile(_Strict):
     components: dict[str, Component] = Field(min_length=1)
     afspecwar_eod: AfspecwarEod
     tables: list[EventTable] = Field(min_length=1)
+    walk: list[WalkStandard] = Field(min_length=1)
 
     @model_validator(mode="after")
     def _check_coverage(self) -> Self:
@@ -109,12 +135,15 @@ class StandardsFile(_Strict):
         self._check_tables_match_components(event_to_component)
         self._check_age_bands(event_to_component)
         self._check_afspecwar_eod(event_to_component)
+        self._check_walk()
         return self
 
     def _map_events_to_components(self) -> dict[str, str]:
         mapping: dict[str, str] = {}
         for name, component in self.components.items():
             for event in component.events:
+                if event == WALK_EVENT:
+                    raise ValueError(f"{WALK_EVENT!r} must not be a scored event in components")
                 if event in mapping:
                     raise ValueError(f"event {event!r} is in both {mapping[event]!r} and {name!r}")
                 mapping[event] = name
@@ -168,6 +197,14 @@ class StandardsFile(_Strict):
                 raise ValueError(
                     f"afspecwar_eod: no table for {event} {mapping.sex} age {mapping.age_min}"
                 )
+
+    def _check_walk(self) -> None:
+        """Each sex must tile all ages, like the scoring tables. Bands may differ from theirs."""
+        for sex in SEXES:
+            bands = sorted((w.age_min, w.age_max) for w in self.walk if w.sex == sex)
+            if not bands:
+                raise ValueError(f"missing walk standards for sex {sex!r}")
+            self._check_contiguous(WALK_EVENT, sex, bands)
 
     @staticmethod
     def _check_contiguous(event: str, sex: Sex, bands: list[tuple[int, int | None]]) -> None:
@@ -226,6 +263,16 @@ class ComponentScore(_Strict):
     full_points_gap: int | None
 
 
+class WalkScore(_Strict):
+    """The 2 km walk result. Pass/fail, no points (DAFMAN 36-2905 para 3.7.3)."""
+
+    result: int
+    max_time: int
+    passed: bool
+    # Seconds over `max_time` on a fail. None on a pass.
+    gap: int | None
+
+
 class ScoreReport(_Strict):
     version: str
     effective_date: date
@@ -236,6 +283,12 @@ class ScoreReport(_Strict):
     category: Category | None
     # Events whose result is below the component minimum.
     missed_minimums: list[str]
+    # The points `total` is out of before scaling: 100, or 50 for a walker (no cardio points).
+    points_possible: int
+    # Set when the member walked. Cardio is then not in `components`.
+    walk: WalkScore | None = None
+    # Rules this report applies that the regulation does not state outright.
+    assumptions: list[str] = Field(default_factory=list)
 
 
 class ComponentStandards(_Strict):
@@ -255,6 +308,8 @@ class StandardsTable(_Strict):
     effective_date: date
     passing_total: int
     components: list[ComponentStandards]
+    # The 2 km walk row for the profile. None when `event` asked for a scored event only.
+    walk: WalkStandard | None = None
 
 
 class EventChange(_Strict):

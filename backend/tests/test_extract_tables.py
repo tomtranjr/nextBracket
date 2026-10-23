@@ -18,15 +18,18 @@ from scripts.extract_tables import (
     DEFAULT_OUT,
     DEFAULT_PDF,
     PAGES,
+    WALK_PAGE_INDEX,
     AfspecwarColumn,
     check_afspecwar_matches,
     extract_afspecwar_columns,
     extract_event_tables,
     extract_standards,
+    extract_walk,
     parse_age_band,
     parse_cell,
     parse_ratio,
     parse_time,
+    parse_walk_age_band,
     render_json,
 )
 
@@ -271,3 +274,67 @@ def test_afspecwar_check_rejects_a_stale_listed_difference(
 def test_run_39_points_agrees_across_both_charts(committed: StandardsFile) -> None:
     run = _table(committed, "run_2mile", "M", 0)
     assert next(b.threshold for b in run.brackets if b.points == 39.0) == 1036
+
+
+@pytest.mark.parametrize(
+    ("label", "band"),
+    [("< 30", (0, 29)), ("<30", (0, 29)), ("30-39", (30, 39)), ("60+", (60, None))],
+)
+def test_parse_walk_age_band(label: str, band: tuple[int, int | None]) -> None:
+    assert parse_walk_age_band(label) == band
+
+
+@pytest.mark.parametrize("label", ["Under 30", "60 and Over", "", "30"])
+def test_parse_walk_age_band_rejects_other_labels(label: str) -> None:
+    with pytest.raises(ValueError, match="walk age band"):
+        parse_walk_age_band(label)
+
+
+WALK_HEADER_ROW: list[str | None] = [
+    "Age (yrs)",
+    "Maximum Time (min:secs)",
+    "Age (yrs)",
+    "Maximum Time",
+]
+
+
+def test_extract_walk_rejects_a_missing_header() -> None:
+    with pytest.raises(ValueError, match="header"):
+        extract_walk([["< 30", "16:16", "< 30", "17:22"]])
+
+
+def test_extract_walk_rejects_a_wrong_band_count() -> None:
+    with pytest.raises(ValueError, match="expected 5 age bands"):
+        extract_walk([WALK_HEADER_ROW, ["< 30", "16:16", "< 30", "17:22"]])  # one band only
+
+
+def test_extract_walk_rejects_an_empty_cell() -> None:
+    rows = [WALK_HEADER_ROW] + [["< 30", "16:16", "< 30", None]] * 5
+    with pytest.raises(ValueError, match="bad row"):
+        extract_walk(rows)
+
+
+# Read by hand from charts PDF page 11. They also match DAFMAN 36-2905 Table 3.1 (p29).
+WALK_FROM_PDF = [
+    ("M", 0, 29, "16:16"),
+    ("M", 30, 39, "16:18"),
+    ("M", 40, 49, "16:23"),
+    ("M", 50, 59, "16:40"),
+    ("M", 60, None, "16:58"),
+    ("F", 0, 29, "17:22"),
+    ("F", 30, 39, "17:28"),
+    ("F", 40, 49, "17:49"),
+    ("F", 50, 59, "18:11"),
+    ("F", 60, None, "18:53"),
+]
+
+
+def test_committed_walk_matches_the_pdf(committed: StandardsFile) -> None:
+    got = [(w.sex, w.age_min, w.age_max, w.max_time) for w in committed.walk]
+    want = [(sex, lo, hi, parse_time(time)) for sex, lo, hi, time in WALK_FROM_PDF]
+    assert got == want
+
+
+def test_walk_page_is_page_11() -> None:
+    with pdfplumber.open(DEFAULT_PDF) as pdf:
+        assert "2.0 Kilometer Walk" in (pdf.pages[WALK_PAGE_INDEX].extract_text() or "")

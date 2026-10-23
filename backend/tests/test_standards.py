@@ -278,3 +278,75 @@ def test_pick_standards_explicit_version_may_be_future(standards_dict: dict[str,
     # An explicit version is the caller's choice, so the date does not block it.
     files = [_file(standards_dict, "future", "2027-01-01")]
     assert pick_standards(files, date(2026, 3, 1), "future").version == "future"
+
+
+def _walk(data: dict[str, Any], sex: str, age_min: int) -> dict[str, Any]:
+    for row in data["walk"]:
+        if row["sex"] == sex and row["age_min"] == age_min:
+            return row  # type: ignore[no-any-return]
+    raise AssertionError("walk row not in fixture")
+
+
+def test_walk_bands_may_differ_from_scoring_bands(standards_dict: dict[str, Any]) -> None:
+    standards = parse_standards(json.dumps(standards_dict))
+    assert [(w.age_min, w.age_max) for w in standards.walk if w.sex == "M"] == [
+        (0, 39),
+        (40, None),
+    ]
+
+
+def _walk_gap(data: dict[str, Any]) -> None:
+    _walk(data, "M", 0)["age_max"] = 38
+
+
+def _walk_overlap(data: dict[str, Any]) -> None:
+    _walk(data, "F", 0)["age_max"] = 41
+
+
+def _walk_last_band_closed(data: dict[str, Any]) -> None:
+    _walk(data, "M", 40)["age_max"] = 99
+
+
+def _walk_missing_sex(data: dict[str, Any]) -> None:
+    data["walk"] = [row for row in data["walk"] if row["sex"] == "M"]
+
+
+def _walk_band_reversed(data: dict[str, Any]) -> None:
+    _walk(data, "M", 40)["age_max"] = 30
+
+
+def _walk_zero_time(data: dict[str, Any]) -> None:
+    _walk(data, "M", 0)["max_time"] = 0
+
+
+def _walk_empty(data: dict[str, Any]) -> None:
+    data["walk"] = []
+
+
+def _walk_as_scored_event(data: dict[str, Any]) -> None:
+    data["components"]["strength"]["events"].append("walk_2km")
+
+
+@pytest.mark.parametrize(
+    ("edit", "message"),
+    [
+        (_walk_gap, "gap or overlap"),
+        (_walk_overlap, "gap or overlap"),
+        (_walk_last_band_closed, "open-ended"),
+        (_walk_missing_sex, "missing walk standards"),
+        (_walk_band_reversed, "below age_min"),
+        (_walk_zero_time, "greater than 0"),
+        (_walk_empty, "at least 1"),
+        (_walk_as_scored_event, "must not be a scored event"),
+    ],
+)
+def test_rejects_bad_walk(standards_dict: dict[str, Any], edit: Edit, message: str) -> None:
+    edit(standards_dict)
+    with pytest.raises(ValidationError, match=message):
+        _parse(standards_dict)
+
+
+def test_rejects_missing_walk(standards_dict: dict[str, Any]) -> None:
+    del standards_dict["walk"]
+    with pytest.raises(ValidationError):
+        _parse(standards_dict)

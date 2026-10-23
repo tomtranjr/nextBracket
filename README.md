@@ -80,8 +80,8 @@ To run it locally, call the API, or see how it's deployed, read the [developer g
 
 ## What's next
 
-1. The 2 km walk and body fat assessment checks.
-2. The cited policy chat: DAFMAN 36-2905 split by paragraph, hybrid search, and an agent with evals.
+1. The 2 km walk in the calculator. The API already scores it.
+2. The cited policy chat: DAFMAN 36-2905 split by paragraph, hybrid search, and an agent with evals. It also answers body fat assessment questions.
 3. A one-page printable report for your PFL or supervisor.
 
 Later: a training plan that takes your scores, your target, and the weeks until your test, and cites its exercise science sources.

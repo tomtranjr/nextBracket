@@ -28,8 +28,9 @@ def _table(
 def standards_dict() -> dict[str, Any]:
     """A tiny hand-written standards file. The numbers are FAKE and only exercise the schema.
 
-    Two components (one with a minimum, one without), two sexes, two age bands. Each test gets
-    a fresh copy, so tests can edit it to break one rule at a time.
+    Two components (one with a minimum, one without), two sexes, two age bands. The walk has
+    its own two bands per sex (0-39 and 40+), which differ from the scoring bands on purpose.
+    Each test gets a fresh copy, so tests can edit it to break one rule at a time.
     """
     tables: list[dict[str, Any]] = []
     for sex in ("M", "F"):
@@ -55,4 +56,9 @@ def standards_dict() -> dict[str, Any]:
         },
         "afspecwar_eod": {"sex": "M", "age_min": 0, "events": ["pushups"]},
         "tables": tables,
+        "walk": [
+            {"sex": sex, "age_min": age_min, "age_max": age_max, "max_time": max_time}
+            for sex, offset in (("M", 0), ("F", 60))
+            for age_min, age_max, max_time in ((0, 39, 960 + offset), (40, None, 1000 + offset))
+        ],
     }
