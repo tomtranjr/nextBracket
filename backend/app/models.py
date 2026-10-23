@@ -13,7 +13,9 @@ Sex = Literal["M", "F"]
 SEXES: tuple[Sex, ...] = ("M", "F")
 
 # The 2 km walk is pass/fail with no points, so it is not a scored event in `components`.
+# It takes the place of this component (DAFMAN 36-2905 para 3.7.3).
 WALK_EVENT = "walk_2km"
+WALK_COMPONENT = "cardio"
 
 
 class _Strict(BaseModel):
@@ -261,6 +263,16 @@ class ComponentScore(_Strict):
     full_points_gap: int | None
 
 
+class WalkScore(_Strict):
+    """The 2 km walk result. Pass/fail, no points (DAFMAN 36-2905 para 3.7.3)."""
+
+    result: int
+    max_time: int
+    passed: bool
+    # Seconds over `max_time` on a fail. None on a pass.
+    gap: int | None
+
+
 class ScoreReport(_Strict):
     version: str
     effective_date: date
@@ -271,6 +283,12 @@ class ScoreReport(_Strict):
     category: Category | None
     # Events whose result is below the component minimum.
     missed_minimums: list[str]
+    # The points `total` is out of before scaling: 100, or 50 for a walker (no cardio points).
+    points_possible: int
+    # Set when the member walked. Cardio is then not in `components`.
+    walk: WalkScore | None = None
+    # Rules this report applies that the regulation does not state outright.
+    assumptions: list[str] = Field(default_factory=list)
 
 
 class ComponentStandards(_Strict):
@@ -290,6 +308,8 @@ class StandardsTable(_Strict):
     effective_date: date
     passing_total: int
     components: list[ComponentStandards]
+    # The 2 km walk row for the profile. None when `event` asked for a scored event only.
+    walk: WalkStandard | None = None
 
 
 class EventChange(_Strict):

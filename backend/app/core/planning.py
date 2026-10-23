@@ -10,6 +10,7 @@ from typing import Literal
 from app.core.scoring import events_by_component, score_event
 from app.core.standards import find_table
 from app.models import (
+    WALK_EVENT,
     EventChange,
     EventTable,
     PlanOption,
@@ -186,11 +187,15 @@ def plan_to_target(
     option that repeats an earlier one is left out. The plan keeps each component's event: the
     one in `current`, or the first one the standards file lists. It never switches from run to
     shuttle. An option must reach the target and meet every component minimum. Raises
-    `ValueError` for a negative target, an unknown event, or two events in one component.
+    `ValueError` for a negative target, an unknown event, two events in one component, or a
+    2 km walk result.
     """
     if target < 0:
         raise ValueError(f"target must not be negative: {target}")
     current = current or Results()
+    # A walker's total is scaled and capped at Satisfactory, which these walks do not model.
+    if WALK_EVENT in current.values:
+        raise ValueError("planning with the 2 km walk is not supported yet")
     chosen = events_by_component(standards, current)
 
     # One row per component: (component, table, result or None, points, minimum_met).

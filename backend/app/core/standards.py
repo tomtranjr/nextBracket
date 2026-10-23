@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from datetime import date
 
-from app.models import EventTable, Sex, StandardsFile
+from app.models import EventTable, Sex, StandardsFile, WalkStandard
 
 
 def pick_standards(
@@ -64,3 +64,18 @@ def find_table(
             return table
     # The schema guarantees full coverage of ages, so only an unknown event reaches here.
     raise ValueError(f"unknown event: {event!r}")
+
+
+def find_walk_standard(standards: StandardsFile, sex: Sex, age: int) -> WalkStandard:
+    """Return the 2 km walk row for one sex and age.
+
+    AFSPECWAR/EOD members use this same row. Their chart has no walk column, and Table 3.1 has
+    no carve-out for them. Raises `ValueError` for a negative age.
+    """
+    if age < 0:
+        raise ValueError(f"age must not be negative: {age}")
+    for row in standards.walk:
+        if row.sex == sex and row.age_min <= age and (row.age_max is None or age <= row.age_max):
+            return row
+    # The schema guarantees full coverage of ages for both sexes.
+    raise AssertionError(f"no walk standard for {sex} age {age}")
