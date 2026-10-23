@@ -180,3 +180,28 @@ def test_standards_rejects_missing_profile(client: TestClient) -> None:
 
 def test_unknown_event_message(client: TestClient) -> None:
     assert "unknown event" in _standards(client, event="nope").json()["detail"]
+
+
+# 2 km walk
+
+
+def test_plan_with_walk_is_422(client: TestClient) -> None:
+    current = {"walk_2km": 900, "push_up": 45, "sit_up": 50, "whtr": 49}
+    response = _plan(client, current={"values": current})
+    assert response.status_code == 422
+    assert "2 km walk is not supported" in response.json()["detail"]
+
+
+def test_standards_include_the_walk_row(client: TestClient) -> None:
+    body = _standards(client, profile={"age": 45, "sex": "F"}).json()
+    assert body["walk"] == {"sex": "F", "age_min": 40, "age_max": 49, "max_time": 1069}
+
+
+def test_standards_walk_only(client: TestClient) -> None:
+    body = _standards(client, event="walk_2km").json()
+    assert body["components"] == []
+    assert body["walk"]["max_time"] == 976
+
+
+def test_standards_scored_event_has_no_walk(client: TestClient) -> None:
+    assert _standards(client, event="push_up").json()["walk"] is None

@@ -60,6 +60,7 @@ Policy search and the chat agent are planned. They go in `app/rag/` and `app/age
 - **Version rule.** With no `version` in the request, the API uses the newest standards file whose effective date is today or earlier.
 - **Units are integers.** Reps, shuttles, and seconds. WHtR is in hundredths, so 0.49 is sent as `49`.
 - **Scoring.** Each component takes one event. The composite is 0 to 100. Excellent is 90 or more. Satisfactory is 75 to 89.5. A missed component minimum is Unsatisfactory. A component with no result is listed in `not_scored`, and then there is no total.
+- **2 km walk.** `walk_2km` (seconds) takes the cardio slot for members with a profile that allows it. It is pass/fail with no points: a time at or under the maximum passes (DAFMAN 36-2905 Table 3.1). The total is points earned / 50 x 100. A walk fail is Unsatisfactory, and a walk pass cannot be Excellent. The DAFMAN does not state the formula, so the response lists it in `assumptions`. `/plan` does not take a walk yet.
 - **Planning.** `plan_to_target` keeps each component's event (it never switches run to shuttle). A component with no result starts at its minimum. Options never repeat.
 
 Events by component:
@@ -70,6 +71,8 @@ Events by component:
 | `strength` | 15 | yes | `push_up`, `hand_release_push_up` (reps) |
 | `core` | 15 | yes | `sit_up`, `cross_leg_reverse_crunch` (reps), `forearm_plank` (seconds) |
 | `body_comp` | 20 | no | `whtr` (hundredths) |
+
+`walk_2km` (seconds) is not a scored event. It fills the `cardio` slot as a pass/fail. Its maximum times are in the `walk` section of the standards file.
 
 ## Tech stack
 
@@ -251,11 +254,39 @@ curl -s -X POST localhost:8000/score -H 'content-type: application/json' \
     "not_scored": [],
     "total": 84.5,
     "category": "satisfactory",
-    "missed_minimums": []
+    "missed_minimums": [],
+    "points_possible": 100,
+    "walk": null,
+    "assumptions": []
 }
 ```
 
 The real response prints each component over several lines. It is shown on one line here to save space. If you leave out an event, it appears in `not_scored`, and `total` and `category` are `null`.
+
+### Score with the 2 km walk
+
+The same member walks 2 km in 16:10 (970 seconds) instead of running. The maximum for a male under 30 is 16:16 (976 seconds).
+
+```
+curl -s -X POST localhost:8000/score -H 'content-type: application/json' \
+  -d '{"profile":{"age":27,"sex":"M"},"results":{"values":{"walk_2km":970,"push_up":45,"sit_up":50,"whtr":49}}}' \
+  | python3 -m json.tool
+```
+
+```json
+{
+    "components": [ ...strength, core, and body_comp as above, no cardio... ],
+    "not_scored": [],
+    "total": 81.0,
+    "category": "satisfactory",
+    "missed_minimums": [],
+    "points_possible": 50,
+    "walk": {"result": 970, "max_time": 976, "passed": true, "gap": null},
+    "assumptions": ["Walk composite = points earned / points possible without cardio x 100. DAFMAN 36-2905 paras 3.7.3 and 3.6.2 score a walker as if exempt from cardio but do not state the formula."]
+}
+```
+
+The other components earn 40.5 of 50 points, so the total is 81.0. At 977 seconds the walk fails with `"gap": 1`, and the category is `unsatisfactory`.
 
 ### Plan
 
@@ -330,11 +361,12 @@ curl -s -X POST localhost:8000/standards -H 'content-type: application/json' \
                 }
             ]
         }
-    ]
+    ],
+    "walk": null
 }
 ```
 
-Leave out `event` to get every event. Run and HAMR then appear together under `cardio`.
+Leave out `event` to get every event. Run and HAMR then appear together under `cardio`, and `walk` holds the member's 2 km walk maximum. Use `"event":"walk_2km"` to get only the walk row.
 
 ### Errors
 

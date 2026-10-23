@@ -35,6 +35,15 @@ export interface ComponentScore {
   full_points_gap: number | null;
 }
 
+/** The 2 km walk result. Pass/fail, no points (DAFMAN 36-2905 para 3.7.3). */
+export interface WalkScore {
+  result: number;
+  max_time: number;
+  passed: boolean;
+  // Seconds over max_time on a fail. null on a pass.
+  gap: number | null;
+}
+
 export interface ScoreReport {
   version: string;
   effective_date: string;
@@ -44,6 +53,12 @@ export interface ScoreReport {
   total: number | null;
   category: Category | null;
   missed_minimums: string[];
+  // What total is out of before scaling: 100, or 50 for a walker (no cardio points).
+  points_possible: number;
+  // Set when the member walked. Cardio is then not in components.
+  walk: WalkScore | null;
+  // Rules the report applies that the regulation does not state outright.
+  assumptions: string[];
 }
 
 export interface Bracket {
@@ -71,11 +86,23 @@ export interface ComponentStandards {
   tables: EventTable[];
 }
 
+/** The 2 km walk maximum time for one sex and age band (DAFMAN 36-2905 Table 3.1). */
+export interface WalkStandard {
+  sex: Sex;
+  age_min: number;
+  // null means open-ended (60 and over).
+  age_max: number | null;
+  // Seconds. A time at or under this passes.
+  max_time: number;
+}
+
 export interface StandardsTable {
   version: string;
   effective_date: string;
   passing_total: number;
   components: ComponentStandards[];
+  // The walk row for the profile. null when `event` asked for a scored event only.
+  walk: WalkStandard | null;
 }
 
 export interface EventChange {
