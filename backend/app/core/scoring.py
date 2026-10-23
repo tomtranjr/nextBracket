@@ -158,7 +158,8 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
     category: Category | None = None
     if not not_scored:
         earned = sum(s.points for s in scores)
-        total = earned if walk is None else earned / points_possible * 100
+        # Multiply first: 27.5 / 50 * 100 is 55.00000000000001, but 27.5 * 100 / 50 is 55.0.
+        total = earned if walk is None else earned * 100 / points_possible
         category = categorize(total, standards.passing_total, bool(missed))
         if walk is not None and not walk.passed:
             category = "unsatisfactory"

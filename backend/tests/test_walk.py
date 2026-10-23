@@ -105,6 +105,11 @@ def test_walk_and_run_are_two_cardio_events(standards: StandardsFile) -> None:
         _score(standards, walk_2km=900, runs=600)
 
 
+def test_walk_and_hamr_are_two_cardio_events() -> None:
+    with pytest.raises(ValueError, match="two events for 'cardio'"):
+        _score(REAL, walk_2km=900, hamr_20m=50)
+
+
 def test_non_walker_report_is_unchanged(standards: StandardsFile) -> None:
     report = _score(standards, runs=600, pushups=30, whtr=45)
     # The fixture has no core component, so the best non-walker total is 50 + 15 + 20 = 85.
@@ -145,6 +150,20 @@ def test_real_charts_walker_scaled_total() -> None:
     # Push-up 45 = 8.5, sit-up 40 = 7.0, WHtR 0.52 = 17.0. 32.5 / 50 x 100 = 65.0.
     report = _score(REAL, walk_2km=900, push_up=45, sit_up=40, whtr=52)
     assert (report.total, report.category) == (65.0, "unsatisfactory")
+
+
+def test_real_charts_walker_total_has_no_float_noise() -> None:
+    # Push-up 28 = 2.5, sit-up 36 = 5.0, WHtR 0.49 = 20.0. 27.5 / 50 x 100 = 55.0 exactly.
+    # Dividing first gave 55.00000000000001.
+    report = _score(REAL, walk_2km=970, push_up=28, sit_up=36, whtr=49)
+    assert report.total == 55.0
+
+
+def test_every_half_point_walker_total_is_exact() -> None:
+    # Points come in 0.5 steps, so every walker total out of 50 is a whole number.
+    for half_points in range(101):
+        earned = half_points / 2
+        assert earned * 100 / 50 == half_points
 
 
 def test_real_charts_walk_one_second_over_fails() -> None:
