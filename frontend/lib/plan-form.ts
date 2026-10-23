@@ -2,7 +2,7 @@
 // answer. No React here, so Vitest can test all of it. The wording lives here on purpose: the
 // planner must never state a fact the API did not give (see `statusText`).
 
-import { COMPONENTS, findEvent } from "./events";
+import { COMPONENTS, findEvent, isPassFail } from "./events";
 import { formatPoints, formatResult } from "./format";
 import { parseAge, type BuiltForm, type FormState, type Parsed } from "./score-form";
 import type { EventChange, PlanOption, PlanOptionKind, PlanRequest, PlanResult } from "./types";
@@ -30,9 +30,25 @@ export const TARGET_PRESETS = [
   { label: "Excellent (90)", value: 90 },
 ] as const;
 
-/** Return the `/plan` request, or `null` until age, sex, one result, and a target are valid. */
-export function buildPlanRequest(built: BuiltForm, target: Parsed): PlanRequest | null {
-  if (built.request === null || !("value" in target)) return null;
+// `/plan` returns 422 for a walk (NB-18). Dropping the walk and planning the rest would be wrong
+// too: the API would treat cardio as missing and plan a run for a member who cannot run.
+export const WALK_PLAN_NOTE = "Planning is not available for the 2 km walk yet.";
+
+/** True when the person picked the walk for cardio, even before typing a time. */
+export function walkChosen(state: FormState): boolean {
+  return COMPONENTS.some((c) => isPassFail(state.components[c.key]?.event ?? ""));
+}
+
+/**
+ * Return the `/plan` request, or `null` until age, sex, one result, and a target are valid.
+ * Always `null` for a walker (see `WALK_PLAN_NOTE`).
+ */
+export function buildPlanRequest(
+  state: FormState,
+  built: BuiltForm,
+  target: Parsed,
+): PlanRequest | null {
+  if (walkChosen(state) || built.request === null || !("value" in target)) return null;
   return {
     profile: built.request.profile,
     target: target.value,
@@ -45,6 +61,7 @@ export function buildPlanRequest(built: BuiltForm, target: Parsed): PlanRequest 
  * `null` too: its own field already shows the error.
  */
 export function planHint(state: FormState, built: BuiltForm, target: Parsed): string | null {
+  if (walkChosen(state)) return WALK_PLAN_NOTE;
   if (!("value" in parseAge(state.age)) || state.sex === null) return "Enter your age and sex.";
   if (built.request === null) return "Enter at least one result.";
   if ("empty" in target) return "Enter a target.";

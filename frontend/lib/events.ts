@@ -1,5 +1,7 @@
 // Hand-written mirror of the event keys in backend/data/standards/*.json. A drift test in
 // events.test.ts reads those files, so a renamed or added event fails CI instead of the form.
+// The 2 km walk is not in the file's `components`: it has its own `walk` section. It is listed
+// here under cardio anyway, so the form offers it as a third cardio choice.
 
 /** How a person types the result. `time` is m:ss, `ratio` is a two-decimal WHtR. */
 export type EventKind = "reps" | "time" | "ratio";
@@ -9,6 +11,10 @@ export interface EventInfo {
   key: string;
   label: string;
   kind: EventKind;
+  /** Pass/fail with no points (the 2 km walk). The report shows it outside `components`. */
+  passFail?: true;
+  /** A short line shown under the field when this event is chosen. */
+  hint?: string;
 }
 
 export interface ComponentInfo {
@@ -29,6 +35,13 @@ export const COMPONENTS: ComponentInfo[] = [
     events: [
       { key: "run_2mile", label: "2-mile run", kind: "time" },
       { key: "hamr_20m", label: "20m HAMR (shuttles)", kind: "reps" },
+      {
+        key: "walk_2km",
+        label: "2 km walk",
+        kind: "time",
+        passFail: true,
+        hint: "Only with an AF Form 469 that allows it (DAFMAN 36-2905, para 3.15.12.1). Pass/fail, no points.",
+      },
     ],
   },
   {
@@ -57,6 +70,11 @@ export const COMPONENTS: ComponentInfo[] = [
     events: [{ key: "whtr", label: "Waist-to-height ratio", kind: "ratio" }],
   },
 ];
+
+/** True for a pass/fail event key (the 2 km walk). */
+export function isPassFail(key: string): boolean {
+  return findEvent(key)?.passFail === true;
+}
 
 /** Find an event by its API name. Used to label rows in a score report. */
 export function findEvent(key: string): EventInfo | undefined {

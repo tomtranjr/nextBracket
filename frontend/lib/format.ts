@@ -1,7 +1,7 @@
 import type { EventKind } from "./events";
 import { formatRatio } from "./score-form";
 import { formatTime } from "./time";
-import type { ComponentScore } from "./types";
+import type { ComponentScore, ScoreReport, WalkScore } from "./types";
 
 /** Points can be halves (87.5). Show a decimal only when there is one. */
 export function formatPoints(n: number): string {
@@ -60,4 +60,30 @@ export function minimumNote(
   // A miss always has a gap. Fall back to no gap text rather than invent one.
   const by = scored.minimum_gap === null ? "" : ` by ${formatResult(kind, scored.minimum_gap)}`;
   return { met: false, text: `Minimum ${minimum} missed${by}` };
+}
+
+/** The line under the walk time: pass or fail against the max for the member's band. */
+export function walkNote(walk: Pick<WalkScore, "max_time" | "passed" | "gap">): {
+  passed: boolean;
+  text: string;
+} {
+  const max = formatTime(walk.max_time);
+  if (walk.passed) {
+    return { passed: true, text: `Pass, max ${max}` };
+  }
+  // A fail always has a gap. Fall back to no gap text rather than invent one.
+  const over = walk.gap === null ? "" : `, ${formatTime(walk.gap)} over`;
+  return { passed: false, text: `Fail${over}, max ${max}` };
+}
+
+/**
+ * How a walker's total was made: the points earned out of the points possible without cardio.
+ * `null` for a runner, or before there is a total.
+ */
+export function scaledNote(
+  report: Pick<ScoreReport, "walk" | "total" | "components" | "points_possible">,
+): string | null {
+  if (report.walk === null || report.total === null) return null;
+  const earned = report.components.reduce((sum, c) => sum + c.points, 0);
+  return `Scaled to 100 from ${formatPoints(earned)} / ${report.points_possible} points.`;
 }
