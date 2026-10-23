@@ -9,9 +9,12 @@ import {
   planHint,
   statusText,
   TARGET_PRESETS,
+  WALK_PLAN_NOTE,
+  walkChosen,
 } from "@/lib/plan-form";
 import {
   buildScoreRequest,
+  emptyInput,
   initialFormState,
   type FormState,
   type Parsed,
@@ -68,10 +71,22 @@ function formWith(texts: Partial<Record<string, string>>, ready = true): FormSta
   return state;
 }
 
+function withWalk(state: FormState, minutes: string, seconds: string): FormState {
+  state.components.cardio = { ...emptyInput("walk_2km"), minutes, seconds };
+  return state;
+}
+
+describe("walkChosen", () => {
+  it("is true once the walk is picked", () => {
+    expect(walkChosen(formWith({ run: "15:40" }))).toBe(false);
+    expect(walkChosen(withWalk(formWith({}), "", ""))).toBe(true);
+  });
+});
+
 describe("buildPlanRequest", () => {
   it("builds a request from the score request and a target", () => {
-    const built = buildScoreRequest(formWith({ run: "15:40", pushUp: "45" }));
-    expect(buildPlanRequest(built, ok(90))).toEqual({
+    const state = formWith({ run: "15:40", pushUp: "45" });
+    expect(buildPlanRequest(state, buildScoreRequest(state), ok(90))).toEqual({
       profile: { age: 27, sex: "M", is_afspecwar_eod: false },
       target: 90,
       current: { values: { run_2mile: 940, push_up: 45 } },
@@ -81,20 +96,27 @@ describe("buildPlanRequest", () => {
   it("passes the AFSPECWAR/EOD flag", () => {
     const state = formWith({ run: "15:40" });
     state.isAfspecwarEod = true;
-    const request = buildPlanRequest(buildScoreRequest(state), ok(75));
+    const request = buildPlanRequest(state, buildScoreRequest(state), ok(75));
     expect(request?.profile.is_afspecwar_eod).toBe(true);
   });
 
   it("returns null with no valid score request", () => {
-    const built = buildScoreRequest(formWith({}));
-    expect(buildPlanRequest(built, ok(90))).toBeNull();
+    const state = formWith({});
+    expect(buildPlanRequest(state, buildScoreRequest(state), ok(90))).toBeNull();
+  });
+
+  it("returns null for a walker, with or without a walk time", () => {
+    const walker = withWalk(formWith({ pushUp: "45" }), "16", "10");
+    expect(buildPlanRequest(walker, buildScoreRequest(walker), ok(75))).toBeNull();
+    const noTime = withWalk(formWith({ pushUp: "45" }), "", "");
+    expect(buildPlanRequest(noTime, buildScoreRequest(noTime), ok(75))).toBeNull();
   });
 
   it.each([{ empty: true } as const, { ok: false, error: "bad" } as const])(
     "returns null with target %j",
     (target) => {
-      const built = buildScoreRequest(formWith({ run: "15:40" }));
-      expect(buildPlanRequest(built, target)).toBeNull();
+      const state = formWith({ run: "15:40" });
+      expect(buildPlanRequest(state, buildScoreRequest(state), target)).toBeNull();
     },
   );
 });
@@ -112,6 +134,11 @@ describe("planHint", () => {
 
   it("asks for a result next", () => {
     expect(hint(formWith({}))).toBe("Enter at least one result.");
+  });
+
+  it("says planning is not available for a walker, before anything else", () => {
+    expect(hint(withWalk(formWith({}, false), "16", "10"))).toBe(WALK_PLAN_NOTE);
+    expect(hint(withWalk(formWith({}), "16", "10"), parseTarget("75"))).toBe(WALK_PLAN_NOTE);
   });
 
   it("asks for a target last", () => {

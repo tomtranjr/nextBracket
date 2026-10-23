@@ -244,6 +244,21 @@ describe("buildScoreRequest", () => {
     expect(built.request?.results.values).toEqual({ hamr_20m: 60, forearm_plank: 120, whtr: 49 });
   });
 
+  it("sends the walk as walk_2km in seconds", () => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.cardio = { ...emptyInput("walk_2km"), minutes: "16", seconds: "10" })),
+    );
+    expect(built.request?.results.values).toEqual({ walk_2km: 970 });
+  });
+
+  it("reports a bad walk time under cardio", () => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.cardio = { ...emptyInput("walk_2km"), minutes: "16", seconds: "75" })),
+    );
+    expect(built.request).toBeNull();
+    expect(built.errors.cardio).toBe("Seconds must be a whole number, 0 to 59.");
+  });
+
   it("asks for waist and height first, and ignores the ratio text until the user picks ratio", () => {
     expect(initialFormState().whtr.mode).toBe("measurements");
     const built = buildScoreRequest(filled((s) => (s.components.body_comp.text = "0.49")));

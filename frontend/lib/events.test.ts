@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { COMPONENTS, findEvent } from "@/lib/events";
+import { COMPONENTS, findEvent, isPassFail } from "@/lib/events";
 
 // Drift check: lib/events.ts is written by hand, so read the real standards files and compare.
 // CI checks out the whole repo, so this path exists there too.
@@ -12,6 +12,7 @@ const STANDARDS_DIR = fileURLToPath(new URL("../../backend/data/standards", impo
 interface StandardsFile {
   version: string;
   components: Record<string, { max_points: number; events: string[] }>;
+  walk: unknown[];
 }
 
 const files: StandardsFile[] = readdirSync(STANDARDS_DIR)
@@ -27,9 +28,29 @@ describe("events.ts matches backend/data/standards", () => {
     expect(COMPONENTS.map((c) => c.key)).toEqual(Object.keys(file.components));
     for (const component of COMPONENTS) {
       const expected = file.components[component.key];
-      expect(component.events.map((e) => e.key)).toEqual(expected.events);
+      // Pass/fail events are not in the file's `components`. They are checked below.
+      const scored = component.events.filter((e) => e.passFail !== true);
+      expect(scored.map((e) => e.key)).toEqual(expected.events);
       expect(component.max_points).toBe(expected.max_points);
     }
+  });
+
+  // The walk fills the cardio slot (WALK_COMPONENT in backend/app/models.py). Its times are in
+  // the file's `walk` section.
+  it.each(files.map((f) => [f.version, f] as const))("walk_2km in version %s", (_v, file) => {
+    expect(file.walk.length).toBeGreaterThan(0);
+    const passFail = COMPONENTS.flatMap((c) =>
+      c.events.filter((e) => e.passFail === true).map((e) => [c.key, e.key]),
+    );
+    expect(passFail).toEqual([["cardio", "walk_2km"]]);
+  });
+});
+
+describe("isPassFail", () => {
+  it("is true only for the walk", () => {
+    expect(isPassFail("walk_2km")).toBe(true);
+    expect(isPassFail("run_2mile")).toBe(false);
+    expect(isPassFail("nope")).toBe(false);
   });
 });
 
