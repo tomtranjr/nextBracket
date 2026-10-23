@@ -162,6 +162,9 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           onChange={onEvent}
         />
       )}
+      {chosen.hint !== undefined && (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{chosen.hint}</p>
+      )}
       {chosen.kind === "time" ? (
         <TimeField
           label={chosen.label}
