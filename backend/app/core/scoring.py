@@ -34,6 +34,16 @@ def _meets(table: EventTable, result: int, threshold: int) -> bool:
     return result >= threshold if table.higher_is_better else result <= threshold
 
 
+def check_result(event: str, result: int, *, higher_is_better: bool) -> None:
+    """Raise `ValueError` for a lower-is-better result of 0 or less.
+
+    A 0:00 run or walk, or a WHtR of 0.00, is a typo, not a top score. A 0 for reps, shuttles,
+    or a plank is a real result, so higher-is-better events accept it.
+    """
+    if not higher_is_better and result <= 0:
+        raise ValueError(f"{event}: result must be above 0: {result}")
+
+
 def find_bracket(table: EventTable, result: int) -> Bracket | None:
     """Return the best bracket the result meets, or None if it is worse than every row."""
     # Brackets are listed best first, so the first one met is the best one met.
@@ -99,6 +109,8 @@ def events_by_component(standards: StandardsFile, results: Results) -> dict[str,
 
 def score_walk(standards: StandardsFile, profile: Profile, result: int) -> WalkScore:
     """Pass/fail the 2 km walk. A time at or under the maximum passes (Table 3.1)."""
+    # The walk is a time, so lower is better.
+    check_result(WALK_EVENT, result, higher_is_better=False)
     max_time = find_walk_standard(standards, profile.sex, profile.age).max_time
     passed = result <= max_time
     return WalkScore(
@@ -111,7 +123,8 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
 
     A member takes one event per component. If a component has no result, the report lists it in
     `not_scored` and gives no total, because the regulation has no formula for a partial set
-    (design doc 16.2). Raises `ValueError` for an unknown event or two events in one component.
+    (design doc 16.2). Raises `ValueError` for an unknown event, two events in one component,
+    or a run, walk, or WHtR result of 0 or less (see `check_result`).
 
     The 2 km walk fills the cardio slot with a pass/fail and no points. A walker's total is
     scaled to 100 from the other components (see `WALK_ASSUMPTION`). A walk fail is
@@ -137,6 +150,7 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
             standards, chosen, profile.sex, profile.age, is_afspecwar_eod=profile.is_afspecwar_eod
         )
         result = results.values[chosen]
+        check_result(chosen, result, higher_is_better=table.higher_is_better)
         points, minimum_met = score_event(table, result)
         scores.append(
             ComponentScore(

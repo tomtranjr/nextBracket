@@ -12,6 +12,7 @@ const STANDARDS_DIR = fileURLToPath(new URL("../../backend/data/standards", impo
 interface StandardsFile {
   version: string;
   components: Record<string, { max_points: number; events: string[] }>;
+  tables: { event: string; higher_is_better: boolean }[];
   walk: unknown[];
 }
 
@@ -33,6 +34,18 @@ describe("events.ts matches backend/data/standards", () => {
       expect(scored.map((e) => e.key)).toEqual(expected.events);
       expect(component.max_points).toBe(expected.max_points);
     }
+  });
+
+  // The form rejects 0 for these events, and the API does too (`check_result` in scoring.py).
+  it.each(files.map((f) => [f.version, f] as const))("lowerIsBetter in version %s", (_v, file) => {
+    for (const table of file.tables) {
+      expect([table.event, findEvent(table.event)?.lowerIsBetter === true]).toEqual([
+        table.event,
+        !table.higher_is_better,
+      ]);
+    }
+    // The walk is a time with no table, so lower is better.
+    expect(findEvent("walk_2km")?.lowerIsBetter).toBe(true);
   });
 
   // The walk fills the cardio slot (WALK_COMPONENT in backend/app/models.py). Its times are in

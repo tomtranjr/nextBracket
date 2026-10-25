@@ -15,6 +15,8 @@ export interface EventInfo {
   passFail?: true;
   /** A short line shown under the field when this event is chosen. */
   hint?: string;
+  /** A lower result is better (a time to finish, or WHtR). Then 0 is a typo, not a top score. */
+  lowerIsBetter?: true;
 }
 
 export interface ComponentInfo {
@@ -33,13 +35,14 @@ export const COMPONENTS: ComponentInfo[] = [
     label: "Cardio",
     max_points: 50,
     events: [
-      { key: "run_2mile", label: "2-mile run", kind: "time" },
+      { key: "run_2mile", label: "2-mile run", kind: "time", lowerIsBetter: true },
       { key: "hamr_20m", label: "20m HAMR (shuttles)", kind: "reps" },
       {
         key: "walk_2km",
         label: "2 km walk",
         kind: "time",
         passFail: true,
+        lowerIsBetter: true,
         hint: "Only with an AF Form 469 that allows it (DAFMAN 36-2905, para 3.15.12.1).",
       },
     ],
@@ -67,7 +70,7 @@ export const COMPONENTS: ComponentInfo[] = [
     key: "body_comp",
     label: "Body composition",
     max_points: 20,
-    events: [{ key: "whtr", label: "Waist-to-height ratio", kind: "ratio" }],
+    events: [{ key: "whtr", label: "Waist-to-height ratio", kind: "ratio", lowerIsBetter: true }],
   },
 ];
 

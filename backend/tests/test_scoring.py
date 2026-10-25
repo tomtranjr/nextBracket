@@ -143,6 +143,18 @@ def test_empty_results_score_nothing(standards: StandardsFile) -> None:
     assert report.total is None
 
 
+def test_lower_is_better_result_of_zero_raises(standards: StandardsFile) -> None:
+    # A WHtR of 0.00 (or a 0:00 run) is a typo, not a top score.
+    with pytest.raises(ValueError, match="whtr: result must be above 0"):
+        calculate_score(standards, _profile(), Results(values={"pushups": 25, "whtr": 0}))
+
+
+def test_higher_is_better_result_of_zero_is_scored(standards: StandardsFile) -> None:
+    # 0 push-ups is a real result: a missed minimum, not an error.
+    report = calculate_score(standards, _profile(), Results(values={"pushups": 0, "whtr": 45}))
+    assert report.missed_minimums == ["pushups"]
+
+
 def test_unknown_event_raises(standards: StandardsFile) -> None:
     with pytest.raises(ValueError, match="unknown event"):
         calculate_score(standards, _profile(), Results(values={"swim": 5}))

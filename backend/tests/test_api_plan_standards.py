@@ -192,6 +192,12 @@ def test_plan_with_walk_is_422(client: TestClient) -> None:
     assert "2 km walk is not supported" in response.json()["detail"]
 
 
+def test_plan_with_zero_run_is_422(client: TestClient) -> None:
+    response = _plan(client, current={"values": {**CURRENT, "run_2mile": 0}})
+    assert response.status_code == 422
+    assert "run_2mile: result must be above 0" in response.json()["detail"]
+
+
 def test_standards_include_the_walk_row(client: TestClient) -> None:
     body = _standards(client, profile={"age": 45, "sex": "F"}).json()
     assert body["walk"] == {"sex": "F", "age_min": 40, "age_max": 49, "max_time": 1069}

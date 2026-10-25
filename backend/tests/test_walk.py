@@ -196,3 +196,14 @@ def test_get_standards_real_female_45() -> None:
 def test_plan_rejects_a_walk_result(standards: StandardsFile) -> None:
     with pytest.raises(ValueError, match="2 km walk is not supported"):
         plan_to_target(standards, MALE_27, 80, Results(values={"walk_2km": 900}))
+
+
+def test_walk_of_zero_seconds_raises(standards: StandardsFile) -> None:
+    # A 0:00 walk is a typo. It must not pass.
+    with pytest.raises(ValueError, match="walk_2km: result must be above 0"):
+        _score(standards, walk_2km=0, pushups=30, whtr=45)
+
+
+def test_walk_of_one_second_is_scored(standards: StandardsFile) -> None:
+    report = _score(standards, walk_2km=1, pushups=30, whtr=45)
+    assert report.walk is not None and report.walk.passed

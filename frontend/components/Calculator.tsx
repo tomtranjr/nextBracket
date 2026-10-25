@@ -7,7 +7,7 @@ import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
 import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
-import { COMPONENTS, pointsLabel, type ComponentInfo } from "@/lib/events";
+import { COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -15,7 +15,7 @@ import {
   initialFormState,
   MAX_AGE,
   MIN_AGE,
-  parseMinutesSeconds,
+  parseResult,
   truncatedRatioText,
 } from "@/lib/score-form";
 import type { ComponentInput, FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
@@ -169,7 +169,7 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           seconds={input.seconds}
           error={error}
           hint={chosen.hint}
-          bad={timeBadBoxes(input)}
+          bad={timeBadBoxes(chosen, input)}
           onMinutes={(text) => onInput("minutes", text)}
           onSeconds={(text) => onInput("seconds", text)}
         />
@@ -189,8 +189,8 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
 }
 
 // The error text comes from `buildScoreRequest`. This only says which box to mark red.
-function timeBadBoxes(input: ComponentInput) {
-  const parsed = parseMinutesSeconds(input.minutes, input.seconds);
+function timeBadBoxes(event: EventInfo, input: ComponentInput) {
+  const parsed = parseResult("time", input, event.lowerIsBetter === true);
   return "bad" in parsed && parsed.bad !== undefined ? parsed.bad : [];
 }
 
