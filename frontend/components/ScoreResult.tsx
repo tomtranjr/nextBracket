@@ -1,6 +1,13 @@
 import { ErrorBox } from "@/components/ErrorBox";
 import { COMPONENTS, findEvent } from "@/lib/events";
-import { formatPoints as points, minimumNote, pointsNote, scaledNote, walkNote } from "@/lib/format";
+import {
+  formatPoints as points,
+  minimumNote,
+  pointsNote,
+  scaledNote,
+  walkNote,
+  walkRatingNote,
+} from "@/lib/format";
 import { formatTime } from "@/lib/time";
 import type { ComponentScore, ScoreReport, WalkScore } from "@/lib/types";
 
@@ -88,8 +95,8 @@ function Report({ report }: { report: ScoreReport }) {
 
       {report.walk !== null && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {scaled !== null && `${scaled} `}A walker can score up to Satisfactory, not Excellent
-          (DAFMAN 36-2905, paras 3.7.3 and 3.10.1).
+          {scaled !== null && `${scaled} `}
+          {walkRatingNote(report.walk)}
         </p>
       )}
 

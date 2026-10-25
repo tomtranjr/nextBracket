@@ -87,3 +87,12 @@ export function scaledNote(
   if (report.walk === null || report.points_earned === null) return null;
   return `Scaled to 100 from ${formatPoints(report.points_earned)} / ${report.points_possible} points.`;
 }
+
+const WALK_RULE = "(DAFMAN 36-2905, paras 3.7.3 and 3.10.1)";
+
+/** The rating rule for a walker. A pass caps the rating; a fail decides it. */
+export function walkRatingNote(walk: Pick<WalkScore, "passed">): string {
+  return walk.passed
+    ? `A walk pass caps the rating at Satisfactory ${WALK_RULE}.`
+    : `A failed walk makes the rating Unsatisfactory ${WALK_RULE}.`;
+}

@@ -7,6 +7,7 @@ import {
   pointsNote,
   scaledNote,
   walkNote,
+  walkRatingNote,
 } from "@/lib/format";
 
 describe("formatPoints", () => {
@@ -121,5 +122,21 @@ describe("scaledNote", () => {
   it("is null for a runner or with no total", () => {
     expect(scaledNote({ walk: null, points_earned: 81, points_possible: 100 })).toBeNull();
     expect(scaledNote({ walk, points_earned: null, points_possible: 50 })).toBeNull();
+  });
+});
+
+describe("walkRatingNote", () => {
+  it("says a walk pass caps the rating at Satisfactory", () => {
+    expect(walkRatingNote({ passed: true })).toBe(
+      "A walk pass caps the rating at Satisfactory (DAFMAN 36-2905, paras 3.7.3 and 3.10.1).",
+    );
+  });
+
+  it("says a failed walk makes the rating Unsatisfactory", () => {
+    const text = walkRatingNote({ passed: false });
+    expect(text).toBe(
+      "A failed walk makes the rating Unsatisfactory (DAFMAN 36-2905, paras 3.7.3 and 3.10.1).",
+    );
+    expect(text).not.toContain("Satisfactory ");
   });
 });
