@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { COMPONENTS, findEvent, isPassFail } from "@/lib/events";
+import { COMPONENTS, findEvent, isPassFail, pointsLabel } from "@/lib/events";
 
 // Drift check: lib/events.ts is written by hand, so read the real standards files and compare.
 // CI checks out the whole repo, so this path exists there too.
@@ -51,6 +51,20 @@ describe("isPassFail", () => {
     expect(isPassFail("walk_2km")).toBe(true);
     expect(isPassFail("run_2mile")).toBe(false);
     expect(isPassFail("nope")).toBe(false);
+  });
+});
+
+describe("pointsLabel", () => {
+  const cardio = COMPONENTS[0];
+  const event = (key: string) => cardio.events.find((e) => e.key === key)!;
+
+  it("shows the component's points for a scored event", () => {
+    expect(pointsLabel(cardio, event("run_2mile"))).toBe("50 points");
+    expect(pointsLabel(COMPONENTS[1], COMPONENTS[1].events[0])).toBe("15 points");
+  });
+
+  it("shows pass/fail with no points for the walk", () => {
+    expect(pointsLabel(cardio, event("walk_2km"))).toBe("pass/fail, no points");
   });
 });
 

@@ -7,7 +7,7 @@ import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
 import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
-import { COMPONENTS, type ComponentInfo } from "@/lib/events";
+import { COMPONENTS, pointsLabel, type ComponentInfo } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -150,7 +150,7 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
       <legend className="mb-2 text-lg font-semibold">
         {component.label}{" "}
         <span className="font-normal text-zinc-600 dark:text-zinc-400">
-          ({component.max_points} points)
+          ({pointsLabel(component, chosen)})
         </span>
       </legend>
       {component.events.length > 1 && (

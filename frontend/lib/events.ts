@@ -40,7 +40,7 @@ export const COMPONENTS: ComponentInfo[] = [
         label: "2 km walk",
         kind: "time",
         passFail: true,
-        hint: "Only with an AF Form 469 that allows it (DAFMAN 36-2905, para 3.15.12.1). Pass/fail, no points.",
+        hint: "Only with an AF Form 469 that allows it (DAFMAN 36-2905, para 3.15.12.1).",
       },
     ],
   },
@@ -70,6 +70,11 @@ export const COMPONENTS: ComponentInfo[] = [
     events: [{ key: "whtr", label: "Waist-to-height ratio", kind: "ratio" }],
   },
 ];
+
+/** The text after a component name: "50 points", or "pass/fail, no points" for the walk. */
+export function pointsLabel(component: ComponentInfo, event: EventInfo): string {
+  return event.passFail === true ? "pass/fail, no points" : `${component.max_points} points`;
+}
 
 /** True for a pass/fail event key (the 2 km walk). */
 export function isPassFail(key: string): boolean {
