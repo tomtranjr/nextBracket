@@ -162,15 +162,13 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           onChange={onEvent}
         />
       )}
-      {chosen.hint !== undefined && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{chosen.hint}</p>
-      )}
       {chosen.kind === "time" ? (
         <TimeField
           label={chosen.label}
           minutes={input.minutes}
           seconds={input.seconds}
           error={error}
+          hint={chosen.hint}
           bad={timeBadBoxes(input)}
           onMinutes={(text) => onInput("minutes", text)}
           onSeconds={(text) => onInput("seconds", text)}
@@ -182,6 +180,7 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           placeholder={chosen.kind === "reps" ? "Reps" : "0.50"}
           value={input.text}
           error={error}
+          hint={chosen.hint}
           onChange={(text) => onInput("text", text)}
         />
       )}
