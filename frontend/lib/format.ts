@@ -78,12 +78,12 @@ export function walkNote(walk: Pick<WalkScore, "max_time" | "passed" | "gap">): 
 
 /**
  * How a walker's total was made: the points earned out of the points possible without cardio.
+ * Both numbers come from the API, so the site never adds points up itself.
  * `null` for a runner, or before there is a total.
  */
 export function scaledNote(
-  report: Pick<ScoreReport, "walk" | "total" | "components" | "points_possible">,
+  report: Pick<ScoreReport, "walk" | "points_earned" | "points_possible">,
 ): string | null {
-  if (report.walk === null || report.total === null) return null;
-  const earned = report.components.reduce((sum, c) => sum + c.points, 0);
-  return `Scaled to 100 from ${formatPoints(earned)} / ${report.points_possible} points.`;
+  if (report.walk === null || report.points_earned === null) return null;
+  return `Scaled to 100 from ${formatPoints(report.points_earned)} / ${report.points_possible} points.`;
 }

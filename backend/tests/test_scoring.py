@@ -112,6 +112,7 @@ def test_report_has_minimum_and_gap(standards: StandardsFile) -> None:
 def test_total_adds_components(standards: StandardsFile) -> None:
     report = calculate_score(standards, _profile(), Results(values={"pushups": 25, "whtr": 48}))
     assert report.total == 20.0
+    assert report.points_earned == 20.0
     assert [c.points for c in report.components] == [10.0, 10.0]
     assert report.missed_minimums == []
     assert report.not_scored == []
@@ -131,6 +132,7 @@ def test_missing_component_gives_no_total(standards: StandardsFile) -> None:
     report = calculate_score(standards, _profile(), Results(values={"pushups": 25}))
     assert report.not_scored == ["body_comp"]
     assert report.total is None
+    assert report.points_earned is None
     assert report.category is None
     assert [c.event for c in report.components] == ["pushups"]
 

@@ -8,7 +8,6 @@ import {
   scaledNote,
   walkNote,
 } from "@/lib/format";
-import type { ComponentScore } from "@/lib/types";
 
 describe("formatPoints", () => {
   it("shows whole numbers with no decimal", () => {
@@ -113,20 +112,14 @@ describe("walkNote", () => {
 
 describe("scaledNote", () => {
   const walk = { result: 970, max_time: 976, passed: true, gap: null };
-  const scored = (points: number) => ({ points }) as ComponentScore;
 
-  it("shows points earned out of points possible for a walker", () => {
-    const report = {
-      walk,
-      total: 81,
-      components: [scored(15), scored(12.5), scored(13)],
-      points_possible: 50,
-    };
+  it("shows the API's points earned out of points possible for a walker", () => {
+    const report = { walk, points_earned: 40.5, points_possible: 50 };
     expect(scaledNote(report)).toBe("Scaled to 100 from 40.5 / 50 points.");
   });
 
   it("is null for a runner or with no total", () => {
-    expect(scaledNote({ walk: null, total: 81, components: [], points_possible: 100 })).toBeNull();
-    expect(scaledNote({ walk, total: null, components: [], points_possible: 50 })).toBeNull();
+    expect(scaledNote({ walk: null, points_earned: 81, points_possible: 100 })).toBeNull();
+    expect(scaledNote({ walk, points_earned: null, points_possible: 50 })).toBeNull();
   });
 });

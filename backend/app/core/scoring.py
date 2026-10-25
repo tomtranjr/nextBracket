@@ -155,6 +155,7 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
 
     missed = [s.event for s in scores if s.minimum_met is False]
     total: float | None = None
+    earned = 0.0
     category: Category | None = None
     if not not_scored:
         earned = sum(s.points for s in scores)
@@ -171,6 +172,7 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
         components=scores,
         not_scored=not_scored,
         total=total,
+        points_earned=None if total is None else earned,
         category=category,
         missed_minimums=missed,
         points_possible=points_possible,

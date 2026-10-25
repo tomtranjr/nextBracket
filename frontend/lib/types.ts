@@ -55,6 +55,8 @@ export interface ScoreReport {
   missed_minimums: string[];
   // What total is out of before scaling: 100, or 50 for a walker (no cardio points).
   points_possible: number;
+  // The sum of component points before scaling. Equal to total for a runner. null with no total.
+  points_earned: number | null;
   // Set when the member walked. Cardio is then not in components.
   walk: WalkScore | null;
   // Rules the report applies that the regulation does not state outright.
