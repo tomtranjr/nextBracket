@@ -115,6 +115,16 @@ uv run pytest
 
 CI runs the same four checks on every push.
 
+### Pre-commit hooks
+
+Install the git hook once, from the repo root:
+
+```
+uvx pre-commit install
+```
+
+Each commit then runs the fast checks on the files it changes: file hygiene, the uv lockfile, ruff, mypy, and ESLint. ESLint needs `npm ci` in `frontend/` first. Run every hook on every file with `uvx pre-commit run --all-files`. The hooks use the tool versions in `backend/uv.lock` and `frontend/package-lock.json`, so they match CI. pytest, Vitest, the typecheck, and the build stay in CI, because they are slow.
+
 ## Run the server
 
 ```

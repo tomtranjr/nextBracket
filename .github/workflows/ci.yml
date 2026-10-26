@@ -36,6 +36,21 @@ jobs:
       - run: uv run mypy app tests
       - run: uv run pytest
 
+  # The hygiene and uv-lock hooks from .pre-commit-config.yaml. Ruff, mypy, and ESLint are
+  # skipped here because the backend and frontend jobs already run them.
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - run: uvx pre-commit@4.7.0 run --all-files --show-diff-on-failure
+        env:
+          SKIP: ruff-check,ruff-format,mypy,eslint
+
   # Builds the image and calls /health, so a broken Dockerfile fails here
   # and not in the Cloud Run deploy (deploy.yml).
   docker:
