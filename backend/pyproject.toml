@@ -31,7 +31,7 @@ strict = true
 python_version = "3.13"
 
 [[tool.mypy.overrides]]
-# pdfplumber ships no type hints. Only scripts/extract_tables.py uses it.
+# pdfplumber ships no type hints. Only the scripts/extract_*.py extractors use it.
 module = ["pdfplumber"]
 ignore_missing_imports = true
 

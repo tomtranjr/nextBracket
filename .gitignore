@@ -16,3 +16,4 @@ wheels/
 
 # Large source PDF (40MB, image-only). Kept locally, not in git.
 backend/data/sources/DAFMAN 36-2905.pdf
+backend/data/sources/DAFMAN 36-2905 (e-Publishing).pdf

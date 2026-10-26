@@ -79,7 +79,8 @@ Events by component:
 Facts about the source PDFs that the code depends on:
 
 - **Charts PDF.** `data/sources/PFRA Scoring Charts.pdf` (11 pages, effective 1 Mar 26) has a text layer, so `pdfplumber` reads it. `pdfplumber` is a dev-only dependency. The Docker image installs with `--no-dev`.
-- **DAFMAN PDF.** `DAFMAN 36-2905.pdf` (116 pages, 24 Mar 2026) is image-only, with no text layer. It is 40 MB and git-ignored, so it exists only on the maintainer's machine.
+- **Regulation PDF.** The 24 Mar 2026 issue is titled AFMAN 36-2905 (it supersedes DAFMAN 36-2905, 22 Apr 2022). `DAFMAN 36-2905 (e-Publishing).pdf` is the e-Publishing original (116 pages, 2.7 MB) with a text layer, so `pdfplumber` reads it and no OCR is needed. `DAFMAN 36-2905.pdf` is an older image-only print of the same issue (40 MB). Both are git-ignored, so they exist only on the maintainer's machine.
+- **Regulation chunks.** `scripts/extract_regulation.py` writes `data/regulation/chunks.jsonl`, one chunk per numbered paragraph, and the file is committed. It leaves out Table 3.1 (it repeats the walk chart values) and Attachments 9 and 10 (body fat tables). Run-in headings are bold in the PDF, so a chunk's `title` is that bold text, or else its nearest titled parent.
 - **Component minimum.** A `*` in the charts marks the minimum for each event, sex, and age band. The extractor reads the `*` and does not guess the row.
 - **WHtR table.** It ends with a 0-point row at 0.60. Other events print no row below the minimum.
 - **WHtR truncation.** A ratio from waist and height is truncated to two decimals, never rounded (DAFMAN para 3.15.4.2). For example, 39.5 / 72 = 0.5486 gives 0.54.
