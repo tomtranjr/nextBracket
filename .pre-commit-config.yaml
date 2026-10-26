@@ -1,0 +1,62 @@
+# Fast checks that run before each commit. CI runs the full set (see .github/workflows/ci.yml).
+# Install once: uvx pre-commit install
+# Run on every file: uvx pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        # Markdown uses two trailing spaces as a line break.
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      # The chart PDF is about 600 KB. The DAFMAN PDF (40 MB) must stay out of git.
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # Matches the uv version used locally. Bump with `uvx pre-commit autoupdate`.
+    rev: 0.11.32
+    hooks:
+      # The hook's default pattern only matches a root pyproject.toml, so point it at backend/.
+      - id: uv-lock
+        args: [--project, backend]
+        files: ^backend/(uv\.lock|pyproject\.toml)$
+
+  # Local hooks run the tools pinned in backend/uv.lock and frontend/package-lock.json,
+  # so the versions always match CI with no second pin to keep in sync.
+  - repo: local
+    hooks:
+      # --project keeps the working directory at the repo root, so the file paths
+      # pre-commit passes still resolve. Ruff finds backend/pyproject.toml on its own.
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --project backend ruff check --fix
+        language: system
+        types: [python]
+        files: ^backend/
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --project backend ruff format
+        language: system
+        types: [python]
+        files: ^backend/
+      # mypy checks the whole project, because a change in one file can break another.
+      - id: mypy
+        name: mypy
+        entry: uv run --directory backend mypy app tests
+        language: system
+        types: [python]
+        files: ^backend/
+        pass_filenames: false
+      # Needs `npm ci` in frontend/ once.
+      - id: eslint
+        name: eslint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|mjs)$
+        pass_filenames: false

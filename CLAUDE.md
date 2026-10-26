@@ -51,7 +51,14 @@ npm run lint && npm run typecheck && npm test && npm run build
 npm run dev                            # run the site locally
 ```
 
-CI runs these checks on every push: the four backend checks, the Docker smoke test, and the frontend checks.
+Pre-commit hooks (run at the repo root, config in `.pre-commit-config.yaml`):
+
+```
+uvx pre-commit install                 # once per clone
+uvx pre-commit run --all-files
+```
+
+CI runs these checks on every push: the four backend checks, the pre-commit hygiene hooks, the Docker smoke test, and the frontend checks.
 
 ## Rules
 
