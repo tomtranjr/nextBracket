@@ -7,7 +7,7 @@ import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
 import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
-import { COMPONENTS, type ComponentInfo } from "@/lib/events";
+import { COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -15,7 +15,7 @@ import {
   initialFormState,
   MAX_AGE,
   MIN_AGE,
-  parseMinutesSeconds,
+  parseResult,
   truncatedRatioText,
 } from "@/lib/score-form";
 import type { ComponentInput, FormState, WhtrFromInches, WhtrMode } from "@/lib/score-form";
@@ -150,7 +150,7 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
       <legend className="mb-2 text-lg font-semibold">
         {component.label}{" "}
         <span className="font-normal text-zinc-600 dark:text-zinc-400">
-          ({component.max_points} points)
+          ({pointsLabel(component, chosen)})
         </span>
       </legend>
       {component.events.length > 1 && (
@@ -168,7 +168,8 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           minutes={input.minutes}
           seconds={input.seconds}
           error={error}
-          bad={timeBadBoxes(input)}
+          hint={chosen.hint}
+          bad={timeBadBoxes(chosen, input)}
           onMinutes={(text) => onInput("minutes", text)}
           onSeconds={(text) => onInput("seconds", text)}
         />
@@ -179,6 +180,7 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
           placeholder={chosen.kind === "reps" ? "Reps" : "0.50"}
           value={input.text}
           error={error}
+          hint={chosen.hint}
           onChange={(text) => onInput("text", text)}
         />
       )}
@@ -187,8 +189,8 @@ function ComponentFields({ component, input, error, onEvent, onInput }: Componen
 }
 
 // The error text comes from `buildScoreRequest`. This only says which box to mark red.
-function timeBadBoxes(input: ComponentInput) {
-  const parsed = parseMinutesSeconds(input.minutes, input.seconds);
+function timeBadBoxes(event: EventInfo, input: ComponentInput) {
+  const parsed = parseResult("time", input, event.lowerIsBetter === true);
   return "bad" in parsed && parsed.bad !== undefined ? parsed.bad : [];
 }
 

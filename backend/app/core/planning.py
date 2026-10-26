@@ -7,7 +7,7 @@ best, so it needs no optimizer, and it scores each step with `score_event` from 
 from dataclasses import dataclass
 from typing import Literal
 
-from app.core.scoring import events_by_component, score_event
+from app.core.scoring import check_result, events_by_component, score_event
 from app.core.standards import find_table
 from app.models import (
     WALK_EVENT,
@@ -187,8 +187,8 @@ def plan_to_target(
     option that repeats an earlier one is left out. The plan keeps each component's event: the
     one in `current`, or the first one the standards file lists. It never switches from run to
     shuttle. An option must reach the target and meet every component minimum. Raises
-    `ValueError` for a negative target, an unknown event, two events in one component, or a
-    2 km walk result.
+    `ValueError` for a negative target, an unknown event, two events in one component, a
+    2 km walk result, or a run or WHtR result of 0 or less (see `check_result`).
     """
     if target < 0:
         raise ValueError(f"target must not be negative: {target}")
@@ -206,6 +206,8 @@ def plan_to_target(
             standards, event, profile.sex, profile.age, is_afspecwar_eod=profile.is_afspecwar_eod
         )
         result = current.values.get(event)
+        if result is not None:
+            check_result(event, result, higher_is_better=table.higher_is_better)
         points, minimum_met = _baseline(table, result)
         rows.append((name, table, result, points, minimum_met))
 

@@ -143,7 +143,19 @@ export function emptyInput(event: string): ComponentInput {
   return { event, text: "", minutes: "", seconds: "" };
 }
 
-export function parseResult(kind: EventKind, input: ComponentInput): Parsed {
+/**
+ * Read one result. With `lowerIsBetter`, 0 is an error: a 0:00 run would otherwise score full
+ * points and a 0:00 walk would pass. A 0 plank or 0 reps is a real result, so those keep it.
+ */
+export function parseResult(kind: EventKind, input: ComponentInput, lowerIsBetter = false): Parsed {
+  const parsed = readResult(kind, input);
+  if (!lowerIsBetter || !("value" in parsed) || parsed.value > 0) return parsed;
+  return kind === "time"
+    ? { ok: false, error: "Enter a time above 0:00.", bad: ["minutes", "seconds"] }
+    : fail("Enter a value above 0.");
+}
+
+function readResult(kind: EventKind, input: ComponentInput): Parsed {
   switch (kind) {
     case "reps":
       return parseReps(input.text);
@@ -207,6 +219,11 @@ function readMeasurements(
     errors.waist = "Waist divided by height is 3 or more. Check both numbers.";
     return null;
   }
+  // The API rejects a ratio of 0 (lower is better, so 0 is a typo).
+  if (whtr.hundredths === 0) {
+    errors.waist = "Waist divided by height is under 0.01. Check both numbers.";
+    return null;
+  }
   return whtr;
 }
 
@@ -227,7 +244,7 @@ export function buildScoreRequest(state: FormState): BuiltForm {
       if (whtr !== null) values[event.key] = whtr.hundredths;
       continue;
     }
-    const parsed = parseResult(event.kind, input);
+    const parsed = parseResult(event.kind, input, event.lowerIsBetter === true);
     if ("error" in parsed) errors[component.key] = parsed.error;
     else if ("value" in parsed) values[event.key] = parsed.value;
   }

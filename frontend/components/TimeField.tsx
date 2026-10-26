@@ -1,6 +1,7 @@
 import { useId } from "react";
 
 import { INPUT, INPUT_BAD } from "@/components/TextField";
+import { describedBy } from "@/lib/a11y";
 import type { TimeBox } from "@/lib/score-form";
 
 interface TimeFieldProps {
@@ -11,6 +12,8 @@ interface TimeFieldProps {
   error: string | undefined;
   /** The boxes to mark red. The error line is shared by both. */
   bad: TimeBox[];
+  /** A short line under the event name. Screen readers read it with each box. */
+  hint?: string;
   onMinutes: (text: string) => void;
   onSeconds: (text: string) => void;
 }
@@ -23,11 +26,13 @@ export function TimeField({
   seconds,
   error,
   bad,
+  hint,
   onMinutes,
   onSeconds,
 }: TimeFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
   const boxes = [
     { box: "minutes", text: "Minutes", value: minutes, placeholder: "15", onChange: onMinutes },
     { box: "seconds", text: "Seconds", value: seconds, placeholder: "40", onChange: onSeconds },
@@ -35,6 +40,11 @@ export function TimeField({
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="mb-1">{label}</legend>
+      {hint !== undefined && (
+        <p id={hintId} className="text-sm text-zinc-600 dark:text-zinc-400">
+          {hint}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3">
         {boxes.map(({ box, text, value, placeholder, onChange }) => {
           const invalid = bad.includes(box);
@@ -51,7 +61,10 @@ export function TimeField({
                 placeholder={placeholder}
                 value={value}
                 aria-invalid={invalid}
-                aria-describedby={error === undefined ? undefined : errorId}
+                aria-describedby={describedBy(
+                  hint !== undefined && hintId,
+                  error !== undefined && errorId,
+                )}
                 className={`${INPUT} ${invalid ? INPUT_BAD : ""}`}
                 onChange={(e) => onChange(e.target.value)}
               />

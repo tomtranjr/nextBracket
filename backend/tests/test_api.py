@@ -181,7 +181,7 @@ def test_score_walker(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["walk"] == {"result": 976, "max_time": 976, "passed": True, "gap": None}
-    assert body["points_possible"] == 50
+    assert (body["points_earned"], body["points_possible"]) == (50, 50)
     assert (body["total"], body["category"]) == (100.0, "satisfactory")
     assert "cardio" not in [c["component"] for c in body["components"]]
     assert len(body["assumptions"]) == 1
@@ -205,9 +205,19 @@ def test_score_walk_fail(client: TestClient) -> None:
 def test_score_non_walker_has_no_walk(client: TestClient) -> None:
     body = _score(client).json()
     assert (body["walk"], body["assumptions"], body["points_possible"]) == (None, [], 100)
+    assert body["points_earned"] == body["total"]
 
 
 def test_score_walk_and_run_is_422(client: TestClient) -> None:
     response = _score(client, results={"values": {**WALKER, "run_2mile": 940}})
     assert response.status_code == 422
     assert "two events for 'cardio'" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("event", ["run_2mile", "walk_2km"])
+def test_score_zero_time_is_422(client: TestClient, event: str) -> None:
+    # A blank Minutes box and "0" seconds used to score a 0:00 run as 50 points.
+    values = {**FULL, "run_2mile": 0} if event == "run_2mile" else {**WALKER, "walk_2km": 0}
+    response = _score(client, results={"values": values})
+    assert response.status_code == 422
+    assert f"{event}: result must be above 0" in response.json()["detail"]

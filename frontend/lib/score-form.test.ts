@@ -187,6 +187,29 @@ describe("parseResult", () => {
     expect(parseResult("time", input)).toEqual(ok(90));
     expect(parseResult("ratio", { ...input, text: "0.50" })).toEqual(ok(50));
   });
+
+  it("rejects 0 for a lower-is-better time and marks both boxes", () => {
+    const error = { ok: false, error: "Enter a time above 0:00.", bad: ["minutes", "seconds"] };
+    for (const [minutes, seconds] of [["0", "0"], ["", "0"], ["0", ""], ["00", "00"]]) {
+      const input = { ...emptyInput("run_2mile"), minutes, seconds };
+      expect(parseResult("time", input, true)).toEqual(error);
+    }
+  });
+
+  it("rejects a 0.00 ratio when lower is better", () => {
+    const input = { ...emptyInput("whtr"), text: "0.00" };
+    expect(parseResult("ratio", input, true)).toEqual({ ok: false, error: "Enter a value above 0." });
+  });
+
+  it("keeps 0 for a higher-is-better event, such as a plank or reps", () => {
+    const input = { event: "any", text: "0", minutes: "0", seconds: "0" };
+    expect(parseResult("time", input)).toEqual(ok(0));
+    expect(parseResult("reps", input)).toEqual(ok(0));
+  });
+
+  it("still treats blank boxes as empty when lower is better", () => {
+    expect(parseResult("time", emptyInput("run_2mile"), true)).toEqual({ empty: true });
+  });
 });
 
 function filled(change: (state: FormState) => void): FormState {
@@ -242,6 +265,36 @@ describe("buildScoreRequest", () => {
       }),
     );
     expect(built.request?.results.values).toEqual({ hamr_20m: 60, forearm_plank: 120, whtr: 49 });
+  });
+
+  it("sends the walk as walk_2km in seconds", () => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.cardio = { ...emptyInput("walk_2km"), minutes: "16", seconds: "10" })),
+    );
+    expect(built.request?.results.values).toEqual({ walk_2km: 970 });
+  });
+
+  it("reports a bad walk time under cardio", () => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.cardio = { ...emptyInput("walk_2km"), minutes: "16", seconds: "75" })),
+    );
+    expect(built.request).toBeNull();
+    expect(built.errors.cardio).toBe("Seconds must be a whole number, 0 to 59.");
+  });
+
+  it.each(["run_2mile", "walk_2km"])("does not send a 0:00 %s", (event) => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.cardio = { ...emptyInput(event), minutes: "", seconds: "0" })),
+    );
+    expect(built.request).toBeNull();
+    expect(built.errors.cardio).toBe("Enter a time above 0:00.");
+  });
+
+  it("still sends a 0:00 plank", () => {
+    const built = buildScoreRequest(
+      filled((s) => (s.components.core = { ...emptyInput("forearm_plank"), minutes: "0", seconds: "0" })),
+    );
+    expect(built.request?.results.values).toEqual({ run_2mile: 940, forearm_plank: 0 });
   });
 
   it("asks for waist and height first, and ignores the ratio text until the user picks ratio", () => {
@@ -318,6 +371,12 @@ describe("buildScoreRequest with waist and height", () => {
   it("rejects a ratio of 3 or more", () => {
     const built = buildScoreRequest(measured("200", "66"));
     expect(built.errors.waist).toBeDefined();
+    expect(built.request?.results.values).toEqual({ run_2mile: 940 });
+  });
+
+  it("rejects a ratio under 0.01", () => {
+    const built = buildScoreRequest(measured("0.5", "72"));
+    expect(built.errors.waist).toBe("Waist divided by height is under 0.01. Check both numbers.");
     expect(built.request?.results.values).toEqual({ run_2mile: 940 });
   });
 

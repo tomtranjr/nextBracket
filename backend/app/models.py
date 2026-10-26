@@ -285,6 +285,9 @@ class ScoreReport(_Strict):
     missed_minimums: list[str]
     # The points `total` is out of before scaling: 100, or 50 for a walker (no cardio points).
     points_possible: int
+    # The sum of component points before scaling. Equal to `total` for a runner. None with no
+    # total. The site shows it, so it never adds points up itself.
+    points_earned: float | None = None
     # Set when the member walked. Cardio is then not in `components`.
     walk: WalkScore | None = None
     # Rules this report applies that the regulation does not state outright.

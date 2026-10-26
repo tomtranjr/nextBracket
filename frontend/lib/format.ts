@@ -1,7 +1,7 @@
 import type { EventKind } from "./events";
 import { formatRatio } from "./score-form";
 import { formatTime } from "./time";
-import type { ComponentScore } from "./types";
+import type { ComponentScore, ScoreReport, WalkScore } from "./types";
 
 /** Points can be halves (87.5). Show a decimal only when there is one. */
 export function formatPoints(n: number): string {
@@ -60,4 +60,39 @@ export function minimumNote(
   // A miss always has a gap. Fall back to no gap text rather than invent one.
   const by = scored.minimum_gap === null ? "" : ` by ${formatResult(kind, scored.minimum_gap)}`;
   return { met: false, text: `Minimum ${minimum} missed${by}` };
+}
+
+/** The line under the walk time: pass or fail against the max for the member's band. */
+export function walkNote(walk: Pick<WalkScore, "max_time" | "passed" | "gap">): {
+  passed: boolean;
+  text: string;
+} {
+  const max = formatTime(walk.max_time);
+  if (walk.passed) {
+    return { passed: true, text: `Pass, max ${max}` };
+  }
+  // A fail always has a gap. Fall back to no gap text rather than invent one.
+  const over = walk.gap === null ? "" : `, ${formatTime(walk.gap)} over`;
+  return { passed: false, text: `Fail${over}, max ${max}` };
+}
+
+/**
+ * How a walker's total was made: the points earned out of the points possible without cardio.
+ * Both numbers come from the API, so the site never adds points up itself.
+ * `null` for a runner, or before there is a total.
+ */
+export function scaledNote(
+  report: Pick<ScoreReport, "walk" | "points_earned" | "points_possible">,
+): string | null {
+  if (report.walk === null || report.points_earned === null) return null;
+  return `Scaled to 100 from ${formatPoints(report.points_earned)} / ${report.points_possible} points.`;
+}
+
+const WALK_RULE = "(DAFMAN 36-2905, paras 3.7.3 and 3.10.1)";
+
+/** The rating rule for a walker. A pass caps the rating; a fail decides it. */
+export function walkRatingNote(walk: Pick<WalkScore, "passed">): string {
+  return walk.passed
+    ? `A walk pass caps the rating at Satisfactory ${WALK_RULE}.`
+    : `A failed walk makes the rating Unsatisfactory ${WALK_RULE}.`;
 }

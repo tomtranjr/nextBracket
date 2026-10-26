@@ -1,7 +1,15 @@
 import { ErrorBox } from "@/components/ErrorBox";
 import { COMPONENTS, findEvent } from "@/lib/events";
-import { formatPoints as points, minimumNote, pointsNote } from "@/lib/format";
-import type { ComponentScore, ScoreReport } from "@/lib/types";
+import {
+  formatPoints as points,
+  minimumNote,
+  pointsNote,
+  scaledNote,
+  walkNote,
+  walkRatingNote,
+} from "@/lib/format";
+import { formatTime } from "@/lib/time";
+import type { ComponentScore, ScoreReport, WalkScore } from "@/lib/types";
 
 interface Props {
   report: ScoreReport | null;
@@ -69,6 +77,7 @@ export function ScoreResult({ report, error, pending, onRetry }: Props) {
 }
 
 function Report({ report }: { report: ScoreReport }) {
+  const scaled = scaledNote(report);
   return (
     <div className="mt-2 flex flex-col gap-3">
       {report.total === null ? (
@@ -84,8 +93,19 @@ function Report({ report }: { report: ScoreReport }) {
         </p>
       )}
 
+      {report.walk !== null && (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          {scaled !== null && `${scaled} `}
+          {walkRatingNote(report.walk)}
+        </p>
+      )}
+
       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {COMPONENTS.map((component) => {
+          // A walk is pass/fail, so it is in `report.walk`, not in `components`.
+          if (component.key === "cardio" && report.walk !== null) {
+            return <WalkRow key={component.key} label={component.label} walk={report.walk} />;
+          }
           const scored = report.components.find((c) => c.component === component.key);
           const note = scored === undefined ? null : rowStatus(scored);
           return (
@@ -118,10 +138,38 @@ function Report({ report }: { report: ScoreReport }) {
         })}
       </ul>
 
+      {report.assumptions.length > 0 && (
+        <ul className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+          {report.assumptions.map((text) => (
+            <li key={text}>Assumption: {text}</li>
+          ))}
+        </ul>
+      )}
+
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Charts effective {report.effective_date}
       </p>
     </div>
+  );
+}
+
+function WalkRow({ label, walk }: { label: string; walk: WalkScore }) {
+  const note = walkNote(walk);
+  const status: Status = note.passed ? "good" : "bad";
+  return (
+    <li className="flex items-baseline justify-between gap-3 py-2">
+      <span>
+        {label}
+        <span className="block text-sm text-zinc-600 dark:text-zinc-400">2 km walk</span>
+      </span>
+      <span className="text-right">
+        <span className="inline-flex items-center gap-1.5">
+          {formatTime(walk.result)}
+          <StatusIcon status={status} />
+        </span>
+        <span className={`block text-sm font-medium ${STATUS_COLOR[status]}`}>{note.text}</span>
+      </span>
+    </li>
   );
 }
 

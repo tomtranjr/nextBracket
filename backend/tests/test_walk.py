@@ -59,7 +59,7 @@ def test_walk_pass_with_full_points_is_capped_at_satisfactory(standards: Standar
     report = _score(standards, walk_2km=960, pushups=30, whtr=45)
     assert report.total == 100.0
     assert report.category == "satisfactory"
-    assert report.points_possible == 35
+    assert (report.points_earned, report.points_possible) == (35, 35)
     assert report.walk is not None
     assert (report.walk.max_time, report.walk.passed, report.walk.gap) == (960, True, None)
     assert [c.component for c in report.components] == ["strength", "body_comp"]
@@ -78,6 +78,7 @@ def test_walk_fail_is_unsatisfactory_whatever_the_points(standards: StandardsFil
 def test_walk_total_is_scaled_from_the_other_components(standards: StandardsFile) -> None:
     report = _score(standards, walk_2km=900, pushups=20, whtr=45)
     assert report.total == pytest.approx(30 / 35 * 100)
+    assert report.points_earned == 30
     assert report.category == "satisfactory"
 
 
@@ -96,7 +97,7 @@ def test_walk_with_a_missed_minimum_is_unsatisfactory(standards: StandardsFile) 
 def test_walk_alone_has_no_total(standards: StandardsFile) -> None:
     report = _score(standards, walk_2km=900)
     assert report.not_scored == ["strength", "body_comp"]
-    assert (report.total, report.category) == (None, None)
+    assert (report.total, report.category, report.points_earned) == (None, None, None)
     assert report.walk is not None and report.walk.passed
 
 
@@ -195,3 +196,14 @@ def test_get_standards_real_female_45() -> None:
 def test_plan_rejects_a_walk_result(standards: StandardsFile) -> None:
     with pytest.raises(ValueError, match="2 km walk is not supported"):
         plan_to_target(standards, MALE_27, 80, Results(values={"walk_2km": 900}))
+
+
+def test_walk_of_zero_seconds_raises(standards: StandardsFile) -> None:
+    # A 0:00 walk is a typo. It must not pass.
+    with pytest.raises(ValueError, match="walk_2km: result must be above 0"):
+        _score(standards, walk_2km=0, pushups=30, whtr=45)
+
+
+def test_walk_of_one_second_is_scored(standards: StandardsFile) -> None:
+    report = _score(standards, walk_2km=1, pushups=30, whtr=45)
+    assert report.walk is not None and report.walk.passed

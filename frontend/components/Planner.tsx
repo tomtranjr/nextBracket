@@ -36,7 +36,7 @@ export function Planner({ state, built }: Props) {
   const [targetText, setTargetText] = useState("");
 
   const target = parseTarget(targetText);
-  const request = buildPlanRequest(built, target);
+  const request = buildPlanRequest(state, built, target);
   const key = request === null ? null : JSON.stringify(request);
   const { value: result, error, pending, retry } = useLiveAnswer(key, planCall, DEBOUNCE_MS);
   const hint = planHint(state, built, target);

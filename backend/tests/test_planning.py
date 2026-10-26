@@ -176,6 +176,11 @@ def test_unknown_event_raises(standards: StandardsFile) -> None:
         _plan(standards, 20, burpees=3)
 
 
+def test_lower_is_better_result_of_zero_raises(standards: StandardsFile) -> None:
+    with pytest.raises(ValueError, match="whtr: result must be above 0"):
+        _plan(standards, 20, pushups=20, whtr=0)
+
+
 def test_copies_version_and_target(standards: StandardsFile) -> None:
     plan = _plan(standards, 14, pushups=10, whtr=55)
     assert (plan.version, plan.target, plan.effective_date) == (
