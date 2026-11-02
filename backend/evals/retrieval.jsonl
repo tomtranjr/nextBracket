@@ -1,0 +1,47 @@
+{"id": "r01", "topic": "retest", "question": "I failed my PT test. Can I retest before three months are up?", "expected": ["3.10.3"]}
+{"id": "r02", "topic": "frequency", "question": "If I score Excellent, how long until my next test?", "expected": ["3.10.1"]}
+{"id": "r03", "topic": "frequency", "question": "I'm a reservist. How often do I have to take the fitness test?", "expected": ["3.4.2", "3.10", "3.10.1", "3.10.2"]}
+{"id": "r04", "topic": "body_comp", "question": "Can I do my waist measurement on a different day than the rest of the test?", "expected": ["3.1.1", "3.4.3", "3.15.4.1"]}
+{"id": "r05", "topic": "walk", "question": "Who is allowed to do the 2 km walk instead of running?", "expected": ["3.15.12.1", "3.7.3", "3.1.2.4"]}
+{"id": "r06", "topic": "walk", "question": "Can I still get an Excellent if I walk instead of run?", "expected": ["3.7.3", "3.10.1"]}
+{"id": "r07", "topic": "body_comp", "question": "What happens if my waist-to-height ratio is over 0.55 and I don't pass?", "expected": ["3.1.2.1.1", "3.15.4.7", "3.1.1"]}
+{"id": "r08", "topic": "body_comp", "question": "How do they check body fat if the base has no InBody scale?", "expected": ["3.1.2.1.3", "3.15.4.7"]}
+{"id": "r09", "topic": "profile", "question": "My profile exempts me from a whole component. Am I allowed to test?", "expected": ["3.9", "4.1.2", "3.10.6"]}
+{"id": "r10", "topic": "profile", "question": "My knee keeps me from the 2 mile run but I'm cleared for the shuttle run. What happens?", "expected": ["3.10.7", "4.1.3"]}
+{"id": "r11", "topic": "profile", "question": "After my profile ends, how much time do I get before I have to test?", "expected": ["3.10.9"]}
+{"id": "r12", "topic": "exemption", "question": "I'm pregnant. When is my next fitness test due?", "expected": ["4.1.4"]}
+{"id": "r13", "topic": "exemption", "question": "Do I still have to test if I retire in eight months?", "expected": ["4.1.7"]}
+{"id": "r14", "topic": "exemption", "question": "What happens to my fitness test while I'm deployed?", "expected": ["4.1.5"]}
+{"id": "r15", "topic": "exemption", "question": "My test expires before I PCS. Do I have to take it before I leave?", "expected": ["4.3.1"]}
+{"id": "r16", "topic": "exemption", "question": "I just got back from a long TDY at a high altitude base. How long until I have to test?", "expected": ["3.10.8"]}
+{"id": "r17", "topic": "diagnostic", "question": "If I don't like my score, can I count it as a practice test instead?", "expected": ["3.8.1", "3.8.3"]}
+{"id": "r18", "topic": "diagnostic", "question": "How many diagnostic tests can I take in a year?", "expected": ["3.8.2"]}
+{"id": "r19", "topic": "diagnostic", "question": "When can my commander offer a diagnostic test?", "expected": ["3.4.4"]}
+{"id": "r20", "topic": "injury", "question": "I got hurt during the run. Can my score be thrown out?", "expected": ["3.12.6", "3.12.4"]}
+{"id": "r21", "topic": "injury", "question": "If my commander invalidates my test, when am I due again?", "expected": ["3.12.7"]}
+{"id": "r22", "topic": "dispute", "question": "I think the monitor miscounted my push-ups. What can I do?", "expected": ["3.15.6.3", "8.4"]}
+{"id": "r23", "topic": "appeal", "question": "How do I appeal a fitness test result?", "expected": ["8.2", "8.3"]}
+{"id": "r24", "topic": "appeal", "question": "How long do I have to file an appeal on my score?", "expected": ["8.2", "8.3"]}
+{"id": "r25", "topic": "procedure", "question": "What happens if I stop the test after I miss a minimum?", "expected": ["3.15.13", "3.10.4"]}
+{"id": "r26", "topic": "consequence", "question": "How many failed tests before I can be kicked out?", "expected": ["8.1.3.3.1", "8.1.3.3.2", "8.1.3.2"]}
+{"id": "r27", "topic": "consequence", "question": "Can I get an Article 15 just for failing my PT test?", "expected": ["8.1.1.1"]}
+{"id": "r28", "topic": "program", "question": "What is the reconditioning program and who has to go to it?", "expected": ["5.6.1", "5.6", "5.6.3"]}
+{"id": "r29", "topic": "program", "question": "What does the Adaptive Fitness Program do for someone on a profile?", "expected": ["5.5.1", "5.5.2", "4.1.8.3"]}
+{"id": "r30", "topic": "procedure", "question": "How long do I have to finish all the events?", "expected": ["3.15.9"]}
+{"id": "r31", "topic": "procedure", "question": "How much rest do I get between events?", "expected": ["3.15.10"]}
+{"id": "r32", "topic": "procedure", "question": "What order are the events done in?", "expected": ["3.15.4"]}
+{"id": "r33", "topic": "conditions", "question": "Is the test called off if it's too hot or raining hard?", "expected": ["3.14.8", "3.14.8.1", "3.14.8.5", "3.5.1"]}
+{"id": "r34", "topic": "body_comp", "question": "Where on my body do they measure my waist?", "expected": ["3.15.4.5", "3.15.4.6", "3.15.4.3"]}
+{"id": "r35", "topic": "body_comp", "question": "Is my waist-to-height ratio rounded up?", "expected": ["3.15.4.2"]}
+{"id": "r36", "topic": "form", "question": "What counts as a good push-up?", "expected": ["A2.3.2", "A2.3.3", "A2.3.1"]}
+{"id": "r37", "topic": "form", "question": "How many form corrections am I allowed on the plank?", "expected": ["A2.7.9"]}
+{"id": "r38", "topic": "form", "question": "What ends my HAMR shuttle run?", "expected": ["A2.9.4", "A2.9.5", "A2.9.6"]}
+{"id": "r39", "topic": "altitude", "question": "Is my run time adjusted at a high altitude base?", "expected": ["3.15.12.3", "A3"]}
+{"id": "r40", "topic": "procedure", "question": "Can a friend pace me on the run?", "expected": ["3.15.12.4"]}
+{"id": "r41", "topic": "frequency", "question": "When is my first test due at my first base?", "expected": ["6.1.1"]}
+{"id": "r42", "topic": "procedure", "question": "Do I need to fill out a health questionnaire before the test?", "expected": ["3.3", "3.15.1", "2.30.5"]}
+{"id": "r43", "topic": "scoring", "question": "What scores count as Excellent, Satisfactory, and Unsatisfactory?", "expected": ["3.6.1"]}
+{"id": "r44", "topic": "scoring", "question": "If I just hit the minimum in every event, do I pass?", "expected": ["3.7.4"]}
+{"id": "r45", "topic": "pcp", "question": "Can my unit make me do PT every duty day?", "expected": ["1.2.3", "1.2.1"]}
+{"id": "r46", "topic": "conditions", "question": "What happens if a storm stops the test halfway through?", "expected": ["3.5.1"]}
+{"id": "r47", "topic": "procedure", "question": "Does my test still count if I refuse to sign the scorecard?", "expected": ["2.30.7"]}
