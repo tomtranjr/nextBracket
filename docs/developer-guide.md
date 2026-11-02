@@ -116,6 +116,18 @@ uv run pytest
 
 CI runs the same four checks on every push.
 
+### Retrieval eval
+
+`evals/retrieval.jsonl` holds hand-written policy questions. Each one lists the AFMAN paragraphs that answer it, and any one of them counts as a hit. A test checks that every listed paragraph exists in `data/regulation/chunks.jsonl`. The questions use plain wording, not the regulation's words, so keyword matching cannot find the answer for free.
+
+`evals/run_retrieval_eval.py` scores a search function `(query, k) -> list[paragraph]` and reports recall@5 and MRR@5. Today it runs a keyword overlap baseline. Run it from `backend/`:
+
+```
+uv run python -m evals.run_retrieval_eval
+```
+
+It writes the metrics and each question's rank to `evals/results/`. Commit the file, so each new search method shows its numbers before and after. The eval is not part of CI.
+
 ### Pre-commit hooks
 
 Install the git hook once, from the repo root:
