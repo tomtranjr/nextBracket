@@ -7,7 +7,7 @@ import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
 import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
-import { COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
+import { DISPLAY_COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -30,6 +30,8 @@ const scoreCall = (key: string, signal: AbortSignal) =>
 
 export function Calculator() {
   const [state, setState] = useState<FormState>(initialFormState);
+  // Bumped by Reset. The planner keys on it, so its own target box remounts blank too.
+  const [resets, setResets] = useState(0);
 
   // The API scales to zero when idle, so wake it while the person types. /health is not rate
   // limited and sends no form data. A failure here is ignored: the real call reports its own.
@@ -51,9 +53,26 @@ export function Calculator() {
     });
   }
 
+  // The score clears at once: a blank form gives a null key, and `useLiveAnswer` shows nothing
+  // for a null key, even if a request sent before the reset comes back later.
+  function reset() {
+    setState(initialFormState());
+    setResets((n) => n + 1);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <form className="flex flex-col gap-6" onSubmit={(event) => event.preventDefault()}>
+        <div className="flex justify-end">
+          {/* type="button", so it never submits. No confirm: the form is quick to fill again. */}
+          <button
+            type="button"
+            className="min-h-11 rounded-md border border-zinc-300 px-4 dark:border-zinc-700"
+            onClick={reset}
+          >
+            Reset form
+          </button>
+        </div>
         <fieldset className="flex flex-col gap-4">
           <legend className="mb-2 text-lg font-semibold">About you</legend>
           <TextField
@@ -90,7 +109,7 @@ export function Calculator() {
           </label>
         </fieldset>
 
-        {COMPONENTS.map((component) =>
+        {DISPLAY_COMPONENTS.map((component) =>
           component.key === "body_comp" ? (
             <BodyCompFields
               key={component.key}
@@ -129,7 +148,7 @@ export function Calculator() {
       </form>
 
       <ScoreResult report={report} error={error} pending={pending} onRetry={retry} />
-      <Planner state={state} built={built} />
+      <Planner key={resets} state={state} built={built} />
     </div>
   );
 }

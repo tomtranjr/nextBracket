@@ -164,6 +164,13 @@ describe("assumptionNote", () => {
     expect(assumptionNote(["core"])).toBe("No result for core. It starts from the minimum.");
   });
 
+  it("names the components in display order", () => {
+    expect(assumptionNote(["cardio", "core", "body_comp"])).toBe(
+      "No result for body composition, core, cardio. It starts from the minimum for each. " +
+        "Body composition starts at 0 points.",
+    );
+  });
+
   it("says body composition starts at 0 points", () => {
     expect(assumptionNote(["body_comp"])).toBe(
       "No result for body composition. It starts from the minimum. " +
@@ -208,7 +215,7 @@ describe("statusText", () => {
       }),
     );
     expect(text).toBe(
-      "At the minimums assumed for cardio, strength, core, you already reach 60. " +
+      "At the minimums assumed for strength, core, cardio, you already reach 60. " +
         "Enter your real results for a true answer.",
     );
   });
