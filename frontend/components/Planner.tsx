@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 
-import { TextField } from "@/components/TextField";
+import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorBox } from "@/components/ErrorBox";
+import { TextField } from "@/components/TextField";
 import { api } from "@/lib/api";
 import { formatPoints } from "@/lib/format";
 import {
@@ -72,18 +73,44 @@ export function Planner({ state, built }: Props) {
         ))}
       </div>
 
+      <PlanAnswer hint={hint} error={error} result={result} pending={pending} onRetry={retry} />
+    </section>
+  );
+}
+
+interface AnswerProps {
+  hint: string | null;
+  error: unknown;
+  result: PlanResult | null;
+  pending: boolean;
+  onRetry: () => void;
+}
+
+/** The answer under the form. Exported so tests can render it without the API. */
+export function PlanAnswer({ hint, error, result, pending, onRetry }: AnswerProps) {
+  const shown = hint === null && error === null ? result : null;
+  return (
+    <>
       <div aria-live="polite" className={pending ? "opacity-60" : ""}>
         {hint !== null ? (
           <p className="text-zinc-600 dark:text-zinc-400">{hint}</p>
         ) : error !== null ? (
-          <ErrorBox error={error} onRetry={retry} />
-        ) : result !== null ? (
-          <Plan result={result} />
+          <ErrorBox error={error} onRetry={onRetry} />
+        ) : shown !== null ? (
+          <Plan result={shown} />
         ) : pending ? (
           <p className="text-zinc-600 dark:text-zinc-400">Working out your options.</p>
         ) : null}
       </div>
-    </section>
+      {/* Outside the live region, so a new plan does not read the disclaimer out again. */}
+      {shown !== null && (
+        <Disclaimer
+          variant="short"
+          chartName={shown.chart_name}
+          effectiveDate={shown.effective_date}
+        />
+      )}
+    </>
   );
 }
 
@@ -120,10 +147,6 @@ function Plan({ result }: { result: PlanResult }) {
           </ul>
         </div>
       ))}
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Charts effective {result.effective_date}
-      </p>
     </div>
   );
 }

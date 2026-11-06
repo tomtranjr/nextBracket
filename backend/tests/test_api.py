@@ -53,6 +53,20 @@ def test_score_matches_core(client: TestClient) -> None:
     assert response.json() == expected
 
 
+def test_score_and_plan_name_the_charts_that_produced_them(client: TestClient) -> None:
+    # The site's disclaimer shows these, so they must come from the standards file used.
+    score = _score(client).json()
+    assert (score["chart_name"], score["effective_date"]) == (
+        "USAF PFRA Scoring Charts",
+        "2026-03-01",
+    )
+    plan = client.post("/plan", json={"profile": PROFILE, "target": 90}).json()
+    assert (plan["chart_name"], plan["effective_date"]) == (
+        "USAF PFRA Scoring Charts",
+        "2026-03-01",
+    )
+
+
 def test_score_with_explicit_version(client: TestClient) -> None:
     assert _score(client, version="2026-03-01").json()["version"] == "2026-03-01"
 

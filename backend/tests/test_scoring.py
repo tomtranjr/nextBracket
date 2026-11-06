@@ -118,6 +118,7 @@ def test_total_adds_components(standards: StandardsFile) -> None:
     assert report.not_scored == []
     assert report.version == "test"
     assert str(report.effective_date) == "2026-03-01"
+    assert report.chart_name == "Test Scoring Charts"
 
 
 def test_missed_minimum_is_reported(standards: StandardsFile) -> None:

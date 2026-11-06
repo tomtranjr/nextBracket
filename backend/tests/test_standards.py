@@ -26,6 +26,7 @@ def test_valid_file_parses(standards_dict: dict[str, Any]) -> None:
     standards = parse_standards(json.dumps(standards_dict))
     assert standards.version == "test"
     assert standards.effective_date == date(2026, 3, 1)
+    assert standards.chart_name == "Test Scoring Charts"
     assert len(standards.tables) == 8
 
 
@@ -46,6 +47,17 @@ def test_rejects_string_numbers(standards_dict: dict[str, Any]) -> None:
 
 def test_rejects_unknown_key(standards_dict: dict[str, Any]) -> None:
     standards_dict["pasing_total"] = 75
+    with pytest.raises(ValidationError):
+        _parse(standards_dict)
+
+
+@pytest.mark.parametrize("value", [None, ""])
+def test_rejects_missing_or_empty_chart_name(standards_dict: dict[str, Any], value: Any) -> None:
+    # The site's disclaimer names the charts with this, so a file without one must not load.
+    if value is None:
+        del standards_dict["chart_name"]
+    else:
+        standards_dict["chart_name"] = value
     with pytest.raises(ValidationError):
         _parse(standards_dict)
 

@@ -47,6 +47,8 @@ export interface WalkScore {
 export interface ScoreReport {
   version: string;
   effective_date: string;
+  // The chart set's display name, from the standards file that produced this report.
+  chart_name: string;
   components: ComponentScore[];
   // With any not-scored component, total and category are null.
   not_scored: string[];
@@ -133,6 +135,8 @@ export type PlanStatus = "already_met" | "options" | "impossible";
 export interface PlanResult {
   version: string;
   effective_date: string;
+  // The chart set's display name, from the standards file that produced this plan.
+  chart_name: string;
   target: number;
   status: PlanStatus;
   current_total: number;

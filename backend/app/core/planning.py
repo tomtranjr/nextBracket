@@ -268,6 +268,7 @@ def plan_to_target(
     return PlanResult(
         version=standards.version,
         effective_date=standards.effective_date,
+        chart_name=standards.chart_name,
         target=target,
         status=status,
         current_total=current_total,

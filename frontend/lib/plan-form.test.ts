@@ -189,6 +189,7 @@ function plan(overrides: Partial<PlanResult>): PlanResult {
   return {
     version: "2026-03-01",
     effective_date: "2026-03-01",
+    chart_name: "USAF PFRA Scoring Charts",
     target: 90,
     status: "options",
     current_total: 84.5,

@@ -183,6 +183,7 @@ def calculate_score(standards: StandardsFile, profile: Profile, results: Results
     return ScoreReport(
         version=standards.version,
         effective_date=standards.effective_date,
+        chart_name=standards.chart_name,
         components=scores,
         not_scored=not_scored,
         total=total,
