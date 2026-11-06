@@ -1,5 +1,5 @@
 import { ErrorBox } from "@/components/ErrorBox";
-import { COMPONENTS, findEvent } from "@/lib/events";
+import { DISPLAY_COMPONENTS, findEvent } from "@/lib/events";
 import {
   formatPoints as points,
   minimumNote,
@@ -101,7 +101,7 @@ function Report({ report }: { report: ScoreReport }) {
       )}
 
       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-        {COMPONENTS.map((component) => {
+        {DISPLAY_COMPONENTS.map((component) => {
           // A walk is pass/fail, so it is in `report.walk`, not in `components`.
           if (component.key === "cardio" && report.walk !== null) {
             return <WalkRow key={component.key} label={component.label} walk={report.walk} />;

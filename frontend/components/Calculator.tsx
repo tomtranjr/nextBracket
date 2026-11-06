@@ -7,7 +7,7 @@ import { ScoreResult } from "@/components/ScoreResult";
 import { TextField } from "@/components/TextField";
 import { TimeField } from "@/components/TimeField";
 import { api } from "@/lib/api";
-import { COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
+import { DISPLAY_COMPONENTS, pointsLabel, type ComponentInfo, type EventInfo } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -90,7 +90,7 @@ export function Calculator() {
           </label>
         </fieldset>
 
-        {COMPONENTS.map((component) =>
+        {DISPLAY_COMPONENTS.map((component) =>
           component.key === "body_comp" ? (
             <BodyCompFields
               key={component.key}
