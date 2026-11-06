@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { COMPONENTS } from "@/lib/events";
 import {
   buildScoreRequest,
   emptyInput,
@@ -221,6 +222,29 @@ function filled(change: (state: FormState) => void): FormState {
   change(state);
   return state;
 }
+
+describe("initialFormState", () => {
+  // The Reset button sets the form to this, so it must be blank and a fresh object each time.
+  it("starts blank, with each component's first event and waist and height mode", () => {
+    const state = initialFormState();
+    expect(state.age).toBe("");
+    expect(state.sex).toBeNull();
+    expect(state.isAfspecwarEod).toBe(false);
+    expect(state.whtr).toEqual({ mode: "measurements", waist: "", height: "" });
+    for (const component of COMPONENTS) {
+      expect(state.components[component.key]).toEqual(emptyInput(component.events[0].key));
+    }
+  });
+
+  it("gives a new object on every call, so a filled form never leaks into a reset", () => {
+    const filled = initialFormState();
+    filled.age = "27";
+    filled.whtr.waist = "32";
+    filled.components.cardio.minutes = "15";
+    expect(initialFormState()).not.toEqual(filled);
+    expect(buildScoreRequest(initialFormState())).toEqual({ request: null, errors: {}, whtr: null });
+  });
+});
 
 describe("buildScoreRequest", () => {
   it("starts with no request and no errors", () => {
