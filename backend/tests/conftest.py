@@ -49,6 +49,7 @@ def standards_dict() -> dict[str, Any]:
         "version": "test",
         "effective_date": "2026-03-01",
         "source": "hand-written test fixture",
+        "chart_name": "Test Scoring Charts",
         "passing_total": 75,
         "components": {
             "strength": {"max_points": 15, "has_minimum": True, "events": ["pushups"]},

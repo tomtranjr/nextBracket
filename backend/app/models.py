@@ -123,6 +123,10 @@ class StandardsFile(_Strict):
     version: str = Field(min_length=1)
     effective_date: date
     source: str = Field(min_length=1)
+    # The chart set's name as a person reads it, e.g. "USAF PFRA Scoring Charts". `source` is the
+    # PDF filename and title, which reads poorly in a disclaimer. Results carry this name so the
+    # site never hardcodes which charts produced a number.
+    chart_name: str = Field(min_length=1)
     passing_total: int = Field(gt=0)
     components: dict[str, Component] = Field(min_length=1)
     afspecwar_eod: AfspecwarEod
@@ -276,6 +280,8 @@ class WalkScore(_Strict):
 class ScoreReport(_Strict):
     version: str
     effective_date: date
+    # From the standards file that produced this report (see `StandardsFile.chart_name`).
+    chart_name: str
     components: list[ComponentScore]
     # Components with no result. With any of these, there is no total and no category.
     not_scored: list[str]
@@ -349,6 +355,8 @@ class PlanResult(_Strict):
 
     version: str
     effective_date: date
+    # From the standards file that produced this plan (see `StandardsFile.chart_name`).
+    chart_name: str
     target: float
     status: PlanStatus
     # Total with the given results. Components without a result are assumed at their minimum.

@@ -281,6 +281,7 @@ curl -s -X POST localhost:8000/score -H 'content-type: application/json' \
 {
     "version": "2026-03-01",
     "effective_date": "2026-03-01",
+    "chart_name": "USAF PFRA Scoring Charts",
     "components": [
         {"component": "cardio", "event": "run_2mile", "result": 940, "points": 44.0, "max_points": 50, "minimum_met": true, "minimum": 1195, "minimum_gap": null, "full_points_at": 815, "full_points_gap": 125},
         {"component": "strength", "event": "push_up", "result": 45, "points": 8.5, "max_points": 15, "minimum_met": true, "minimum": 28, "minimum_gap": null, "full_points_at": 63, "full_points_gap": 18},
@@ -338,6 +339,7 @@ curl -s -X POST localhost:8000/plan -H 'content-type: application/json' \
 {
     "version": "2026-03-01",
     "effective_date": "2026-03-01",
+    "chart_name": "USAF PFRA Scoring Charts",
     "target": 90.0,
     "status": "options",
     "current_total": 84.5,

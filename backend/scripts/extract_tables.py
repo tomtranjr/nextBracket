@@ -34,6 +34,8 @@ DEFAULT_OUT = BACKEND / "data" / "standards" / "2026-03-01.json"
 VERSION = "2026-03-01"
 EFFECTIVE_DATE = date(2026, 3, 1)
 SOURCE = "PFRA Scoring Charts.pdf (Final USAF PFRA Scoring, effective 1 Mar 26)"
+# The name the site shows in its disclaimer. SOURCE is a file name and reads poorly there.
+CHART_NAME = "USAF PFRA Scoring Charts"
 PASSING_TOTAL = 75
 
 COMPONENTS: dict[str, dict[str, Any]] = {
@@ -402,6 +404,7 @@ def extract_standards(pdf_path: Path) -> StandardsFile:
             "version": VERSION,
             "effective_date": EFFECTIVE_DATE,
             "source": SOURCE,
+            "chart_name": CHART_NAME,
             "passing_total": PASSING_TOTAL,
             "components": COMPONENTS,
             "afspecwar_eod": AFSPECWAR_EOD,

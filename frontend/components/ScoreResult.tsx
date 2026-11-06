@@ -1,3 +1,4 @@
+import { Disclaimer } from "@/components/Disclaimer";
 import { ErrorBox } from "@/components/ErrorBox";
 import { DISPLAY_COMPONENTS, findEvent } from "@/lib/events";
 import {
@@ -92,6 +93,18 @@ function Report({ report }: { report: ScoreReport }) {
           </span>
         </p>
       )}
+      {/*
+        Inside the section's polite live region, so aria-live="off" keeps its own text out of
+        the announcements. The node stays mounted between updates, so it is read once, not on
+        every score change.
+      */}
+      <div aria-live="off">
+        <Disclaimer
+          variant="short"
+          chartName={report.chart_name}
+          effectiveDate={report.effective_date}
+        />
+      </div>
 
       {report.walk !== null && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -145,10 +158,6 @@ function Report({ report }: { report: ScoreReport }) {
           ))}
         </ul>
       )}
-
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Charts effective {report.effective_date}
-      </p>
     </div>
   );
 }

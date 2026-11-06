@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SiteFooter } from "@/components/Disclaimer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Next Bracket",
-  description: "PFA scoring and planning for Airmen.",
+  description: "Unofficial PFA scoring and planning for Airmen.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <SiteFooter />
         {/* Page views and performance only. Never send custom events or form values. */}
         <Analytics />
         <SpeedInsights />

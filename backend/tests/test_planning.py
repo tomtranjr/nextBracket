@@ -183,10 +183,11 @@ def test_lower_is_better_result_of_zero_raises(standards: StandardsFile) -> None
 
 def test_copies_version_and_target(standards: StandardsFile) -> None:
     plan = _plan(standards, 14, pushups=10, whtr=55)
-    assert (plan.version, plan.target, plan.effective_date) == (
+    assert (plan.version, plan.target, plan.effective_date, plan.chart_name) == (
         "test",
         14,
         standards.effective_date,
+        "Test Scoring Charts",
     )
 
 

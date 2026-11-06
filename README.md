@@ -88,4 +88,8 @@ Later: a training plan that takes your scores, your target, and the weeks until 
 
 ---
 
-Next Bracket is not an official Air Force tool. Your Unit Fitness Assessment Cell (UFAC), Unit Fitness Program Manager (UFPM), and the current [DAFMAN 36-2905](https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf) have the final word.
+## Disclaimer
+
+Next Bracket is an independent tool and is not affiliated with or endorsed by the Department of the Air Force or the Department of Defense. Scores and plans are estimates based on the USAF PFRA Scoring Charts (effective 1 Mar 26) and DAFMAN 36-2905, and may contain errors. Always verify your results against the official charts, and contact your Unit Fitness Program Manager (UFPM) or Fitness Assessment Cell for official scores and policy guidance.
+
+The current [DAFMAN 36-2905](https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf) has the final word.
