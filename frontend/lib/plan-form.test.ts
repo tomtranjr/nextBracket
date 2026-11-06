@@ -53,6 +53,12 @@ describe("parseTarget", () => {
       expect(parseTarget(String(preset.value))).toEqual(ok(preset.value));
     }
   });
+
+  it("has presets in ascending order, ending at the maximum of 100", () => {
+    const values = TARGET_PRESETS.map((preset) => preset.value);
+    expect(values).toEqual([...values].sort((a, b) => a - b));
+    expect(values.at(-1)).toBe(100);
+  });
 });
 
 // A form with age, sex, and the results. `run` is "m:ss", split into the two time boxes.
