@@ -3,7 +3,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { COMPONENTS, findEvent, isPassFail, pointsLabel } from "@/lib/events";
+import {
+  COMPONENTS,
+  DISPLAY_COMPONENTS,
+  findEvent,
+  isPassFail,
+  pointsLabel,
+  sortByDisplayOrder,
+} from "@/lib/events";
 
 // Drift check: lib/events.ts is written by hand, so read the real standards files and compare.
 // CI checks out the whole repo, so this path exists there too.
@@ -56,6 +63,47 @@ describe("events.ts matches backend/data/standards", () => {
       c.events.filter((e) => e.passFail === true).map((e) => [c.key, e.key]),
     );
     expect(passFail).toEqual([["cardio", "walk_2km"]]);
+  });
+});
+
+describe("DISPLAY_COMPONENTS", () => {
+  it("is body composition, strength, core, then cardio", () => {
+    expect(DISPLAY_COMPONENTS.map((c) => c.key)).toEqual([
+      "body_comp",
+      "strength",
+      "core",
+      "cardio",
+    ]);
+  });
+
+  it("has exactly the keys in COMPONENTS", () => {
+    const sorted = (keys: string[]) => [...keys].sort();
+    expect(sorted(DISPLAY_COMPONENTS.map((c) => c.key))).toEqual(
+      sorted(COMPONENTS.map((c) => c.key)),
+    );
+    expect(DISPLAY_COMPONENTS).toHaveLength(COMPONENTS.length);
+  });
+
+  it("reuses the same component objects", () => {
+    for (const component of DISPLAY_COMPONENTS) {
+      expect(COMPONENTS).toContain(component);
+    }
+  });
+});
+
+describe("sortByDisplayOrder", () => {
+  it("sorts keys into display order", () => {
+    expect(sortByDisplayOrder(["cardio", "core", "body_comp"])).toEqual([
+      "body_comp",
+      "core",
+      "cardio",
+    ]);
+  });
+
+  it("puts unknown keys last and does not change its input", () => {
+    const keys = ["nope", "cardio", "strength"];
+    expect(sortByDisplayOrder(keys)).toEqual(["strength", "cardio", "nope"]);
+    expect(keys).toEqual(["nope", "cardio", "strength"]);
   });
 });
 

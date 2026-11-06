@@ -2,7 +2,7 @@
 // answer. No React here, so Vitest can test all of it. The wording lives here on purpose: the
 // planner must never state a fact the API did not give (see `statusText`).
 
-import { COMPONENTS, findEvent, isPassFail } from "./events";
+import { COMPONENTS, findEvent, isPassFail, sortByDisplayOrder } from "./events";
 import { formatPoints, formatResult } from "./format";
 import { parseAge, type BuiltForm, type FormState, type Parsed } from "./score-form";
 import type { EventChange, PlanOption, PlanOptionKind, PlanRequest, PlanResult } from "./types";
@@ -71,8 +71,9 @@ export function planHint(state: FormState, built: BuiltForm, target: Parsed): st
 const componentLabel = (key: string) =>
   (COMPONENTS.find((c) => c.key === key)?.label ?? key).toLowerCase();
 
+// Name components in the same order the form shows them, not the order the API sends.
 function listLabels(keys: string[]): string {
-  return keys.map(componentLabel).join(", ");
+  return sortByDisplayOrder(keys).map(componentLabel).join(", ");
 }
 
 /** Tell the person which components the plan guessed, or `null` when it guessed none. */

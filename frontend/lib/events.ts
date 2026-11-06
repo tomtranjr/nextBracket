@@ -74,6 +74,29 @@ export const COMPONENTS: ComponentInfo[] = [
   },
 ];
 
+// The form and the score breakdown show components in this order (NB-34): body composition
+// first, cardio last. COMPONENTS stays in chart order because the drift test compares it to the
+// standards files. A test checks that this list has exactly the keys in COMPONENTS.
+const DISPLAY_ORDER = ["body_comp", "strength", "core", "cardio"];
+
+function componentByKey(key: string): ComponentInfo {
+  const component = COMPONENTS.find((c) => c.key === key);
+  if (component === undefined) throw new Error(`Unknown component in DISPLAY_ORDER: ${key}`);
+  return component;
+}
+
+/** The components in display order. Use this to render a list of components. */
+export const DISPLAY_COMPONENTS: ComponentInfo[] = DISPLAY_ORDER.map(componentByKey);
+
+/** Sort component keys into display order. Unknown keys go last, in their given order. */
+export function sortByDisplayOrder(keys: string[]): string[] {
+  const rank = (key: string) => {
+    const index = DISPLAY_ORDER.indexOf(key);
+    return index === -1 ? DISPLAY_ORDER.length : index;
+  };
+  return [...keys].sort((a, b) => rank(a) - rank(b));
+}
+
 /** The text after a component name: "50 points", or "pass/fail, no points" for the walk. */
 export function pointsLabel(component: ComponentInfo, event: EventInfo): string {
   return event.passFail === true ? "pass/fail, no points" : `${component.max_points} points`;
