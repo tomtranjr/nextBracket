@@ -28,6 +28,8 @@ export function parseTarget(text: string): Parsed {
 export const TARGET_PRESETS = [
   { label: "Satisfactory (75)", value: 75 },
   { label: "Excellent (90)", value: 90 },
+  // Not a DAFMAN rating category, just the top of the scale. The /plan API accepts 100.
+  { label: "Maximum (100)", value: 100 },
 ] as const;
 
 // `/plan` returns 422 for a walk (NB-18). Dropping the walk and planning the rest would be wrong
