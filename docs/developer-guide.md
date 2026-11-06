@@ -39,6 +39,7 @@ backend/
     standards/      versioned scoring JSON (2026-03-01.json)
     sources/        the official charts PDF
   scripts/          extract_tables.py turns the charts PDF into JSON
+                    extract_regulation.py and ingest_regulation.py build the policy search data
   tests/
 frontend/           Next.js site
   app/              routes and layout
@@ -98,7 +99,7 @@ Facts about the source PDFs that the code depends on:
 | Container | Docker, Docker Compose | built |
 | Hosting | Google Cloud Run (API), Vercel (website) | built |
 | Website | Next.js, TypeScript, Tailwind, on Vercel | calculator and planner built, deployed at https://nextbracket-five.vercel.app |
-| Policy search | Postgres with pgvector (Supabase), full-text plus vector search | planned |
+| Policy search | Postgres with pgvector (Supabase), full-text plus vector search | data loaded locally, search planned |
 | Chat assistant | LangGraph agent with tools for scoring, planning, and search | planned |
 | Evals and tracing | agent evals, LangSmith | planned |
 
@@ -168,6 +169,22 @@ docker compose up --build
 ```
 
 The API listens on `http://localhost:8000`, the same as above. The image listens on the `PORT` environment variable (default `8080`), because Cloud Run sets it. CI builds the image and calls `/health` on every push.
+
+### Regulation database
+
+Policy search reads the AFMAN chunks from Postgres with pgvector. Compose runs it as the `db` service. The API does not use it yet.
+
+```
+docker compose up -d db
+cd backend
+OPENAI_API_KEY=... uv run python -m scripts.ingest_regulation
+```
+
+The script embeds every chunk in `data/regulation/chunks.jsonl` with OpenAI `text-embedding-3-small` and upserts it into `regulation_chunks`. The schema is in `scripts/regulation_schema.sql`. Each row also has a generated full-text column (`tsv`) with a GIN index. A rerun of the same regulation issue replaces its rows and deletes paragraphs that are gone from the file. Run it only when a new issue is published. `NEXTBRACKET_DATABASE_URL` picks the database. The default is the local compose one.
+
+The table has no vector index. About 630 rows is small enough for an exact scan, which also has perfect recall.
+
+`tests/test_ingest_regulation.py` uses a fake embedder, so no test calls OpenAI. Its database tests run in a throwaway schema when the `db` service is up, and skip when it is not. CI has no Postgres, so it skips them.
 
 ### Deploy
 

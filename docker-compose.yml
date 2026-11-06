@@ -1,4 +1,4 @@
-# Local stack. API only for now. Postgres with pgvector joins in PR 23.
+# Local stack: the API, and Postgres with pgvector for the regulation chunks.
 services:
   api:
     build: ./backend
@@ -12,3 +12,28 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
+
+  # Holds reference data only (regulation chunks and embeddings), never user data.
+  # Load it with `uv run python -m scripts.ingest_regulation` from backend/.
+  # The API does not read it yet, so the api service does not depend on it.
+  db:
+    # The official pgvector image: Postgres 18 with the vector extension installed.
+    image: pgvector/pgvector:0.8.1-pg18
+    environment:
+      # Local only. These match the default NEXTBRACKET_DATABASE_URL in app/config.py.
+      POSTGRES_USER: nextbracket
+      POSTGRES_PASSWORD: nextbracket
+      POSTGRES_DB: nextbracket
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<version>, so mount the parent.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "nextbracket", "-d", "nextbracket"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
