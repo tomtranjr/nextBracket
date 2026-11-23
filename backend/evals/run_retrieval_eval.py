@@ -5,16 +5,24 @@ hand-written questions in `evals/retrieval.jsonl`. It reports recall@k and MRR@k
 
 Run from `backend/`:
 
-    uv run python -m evals.run_retrieval_eval
+    uv run python -m evals.run_retrieval_eval                      # keyword overlap
+    uv run python -m evals.run_retrieval_eval --search full_text
+    uv run python -m evals.run_retrieval_eval --search vector
 """
 
 import argparse
 import json
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import psycopg
+
+from app.config import get_settings
+from app.rag.embedding import openai_embedder
+from app.rag.search import full_text_search, vector_search
 
 EVALS_DIR = Path(__file__).resolve().parent
 CHUNKS_PATH = EVALS_DIR.parent / "data" / "regulation" / "chunks.jsonl"
@@ -126,24 +134,81 @@ def keyword_search(chunks: Sequence[dict[str, Any]]) -> SearchFn:
     return search
 
 
+# --- Database searches (app/rag/search.py) ---------------------------------------------
+
+
+def full_text_fn(conn: psycopg.Connection[Any], source_doc: str, version: str) -> SearchFn:
+    def search(query: str, k: int) -> list[str]:
+        hits = full_text_search(conn, query, k, source_doc=source_doc, version=version)
+        return [h.paragraph for h in hits]
+
+    return search
+
+
+def vector_fn(
+    conn: psycopg.Connection[Any],
+    vectors: Mapping[str, Sequence[float]],
+    source_doc: str,
+    version: str,
+) -> SearchFn:
+    """Build a vector search over questions embedded ahead of time.
+
+    One batch call embeds every question, instead of one OpenAI call per case.
+    """
+
+    def search(query: str, k: int) -> list[str]:
+        hits = vector_search(conn, vectors[query], k, source_doc=source_doc, version=version)
+        return [h.paragraph for h in hits]
+
+    return search
+
+
+SEARCHES = {
+    "keyword": "keyword_overlap",
+    "full_text": "postgres_full_text",
+    "vector": "pgvector_cosine",
+}
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--search",
+        choices=sorted(SEARCHES),
+        default="keyword",
+        help="keyword runs in memory. full_text and vector need the compose db with the chunks "
+        "loaded. vector also needs OPENAI_API_KEY to embed the questions.",
+    )
+    parser.add_argument(
         "--out",
         type=Path,
-        default=RESULTS_DIR / "retrieval_keyword_baseline.json",
-        help="where to write the results JSON",
+        help="where to write the results JSON (default: results/retrieval_<search>_baseline.json)",
     )
     args = parser.parse_args(argv)
+    out: Path = args.out or RESULTS_DIR / f"retrieval_{args.search}_baseline.json"
 
     chunks = load_chunks()
+    cases = load_cases()
+    source_doc, version = chunks[0]["source_doc"], chunks[0]["version"]
+    if args.search == "keyword":
+        metrics = evaluate(keyword_search(chunks), cases)
+    else:
+        with psycopg.connect(get_settings().database_url) as conn:
+            if args.search == "full_text":
+                search = full_text_fn(conn, source_doc, version)
+            else:
+                questions = [c.question for c in cases]
+                vectors = dict(zip(questions, openai_embedder()(questions), strict=True))
+                search = vector_fn(conn, vectors, source_doc, version)
+            metrics = evaluate(search, cases)
+
     report = {
-        "search": "keyword_overlap",
-        "chunks_version": chunks[0]["version"],
-        **evaluate(keyword_search(chunks), load_cases()),
+        "search": SEARCHES[args.search],
+        "chunks_version": version,
+        **metrics,
     }
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
         f"{report['search']}: recall@{report['k']} = {report['recall_at_k']:.3f}, "
         f"MRR@{report['k']} = {report['mrr_at_k']:.3f} over {report['cases']} cases"

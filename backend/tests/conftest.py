@@ -1,6 +1,11 @@
+import uuid
+from collections.abc import Iterator
 from typing import Any
 
+import psycopg
 import pytest
+
+from app.config import get_settings
 
 
 def _table(
@@ -63,3 +68,26 @@ def standards_dict() -> dict[str, Any]:
             for age_min, age_max, max_time in ((0, 39, 960 + offset), (40, None, 1000 + offset))
         ],
     }
+
+
+@pytest.fixture
+def conn() -> Iterator[psycopg.Connection[Any]]:
+    """A connection whose tables live in a throwaway schema, so real rows are never touched."""
+    try:
+        connection = psycopg.connect(get_settings().database_url, connect_timeout=2)
+    except psycopg.OperationalError:
+        pytest.skip("Postgres is not running (start it with `docker compose up db`)")
+    schema = f"test_{uuid.uuid4().hex[:8]}"
+    with connection:
+        # The extension lives in public, so the vector type resolves from the test schema too.
+        connection.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public")
+        connection.execute(f"CREATE SCHEMA {schema}")
+        connection.execute(f"SET search_path TO {schema}, public")
+        # Commit the setup, so the teardown rollback undoes only what the test did.
+        connection.commit()
+        try:
+            yield connection
+        finally:
+            connection.rollback()
+            connection.execute(f"DROP SCHEMA {schema} CASCADE")
+            connection.commit()
