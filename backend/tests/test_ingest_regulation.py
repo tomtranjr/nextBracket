@@ -102,6 +102,12 @@ def test_ingest_rejects_mixed_versions_before_any_sql() -> None:
         ingest(conn, [make_chunk("1.1"), other], fake_embed)
 
 
+def test_ingest_rejects_duplicate_paragraphs_before_any_sql() -> None:
+    conn: Any = None
+    with pytest.raises(ValueError, match=r"duplicate paragraphs: \['1.1'\]"):
+        ingest(conn, [make_chunk("1.1"), make_chunk("1.2"), make_chunk("1.1")], fake_embed)
+
+
 # Database tests
 
 
@@ -146,6 +152,17 @@ def test_rerun_updates_rows_and_deletes_stale_paragraphs(conn: psycopg.Connectio
     assert count == 1
     rows = conn.execute("SELECT paragraph, text FROM regulation_chunks").fetchall()
     assert rows == [("1.1", "New text.")]
+
+
+def test_new_version_leaves_the_old_version_in_place(conn: psycopg.Connection[Any]) -> None:
+    # The stale delete must stay scoped to one version, or a new issue would wipe the old one.
+    ingest(conn, [make_chunk("1.1"), make_chunk("1.2")], fake_embed)
+    newer = [Chunk(**{**make_chunk("1.1").__dict__, "version": "2027-01-01"})]
+    assert ingest(conn, newer, fake_embed) == 1
+    rows = conn.execute(
+        "SELECT version, paragraph FROM regulation_chunks ORDER BY version, paragraph"
+    ).fetchall()
+    assert rows == [("2026-03-24", "1.1"), ("2026-03-24", "1.2"), ("2027-01-01", "1.1")]
 
 
 def test_full_text_index_finds_a_paragraph(conn: psycopg.Connection[Any]) -> None:

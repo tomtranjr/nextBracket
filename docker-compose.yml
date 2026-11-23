@@ -25,7 +25,8 @@ services:
       POSTGRES_PASSWORD: nextbracket
       POSTGRES_DB: nextbracket
     ports:
-      - "5432:5432"
+      # Bind to localhost so other machines on the network cannot reach the dev database.
+      - "127.0.0.1:5432:5432"
     volumes:
       # Postgres 18 images keep data under /var/lib/postgresql/<version>, so mount the parent.
       - pgdata:/var/lib/postgresql

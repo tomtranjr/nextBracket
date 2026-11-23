@@ -13,6 +13,7 @@ The target database is `NEXTBRACKET_DATABASE_URL` (default: the local compose da
 
 import argparse
 import json
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -125,6 +126,11 @@ def ingest(conn: psycopg.Connection[Any], chunks: Sequence[Chunk], embed: Embedd
     if len(issues) != 1:
         raise ValueError(f"expected one source_doc and version, got {sorted(issues)}")
     (source_doc, version) = issues.pop()
+    # The upsert keeps only the last copy of a repeated paragraph, so a duplicate would lose text.
+    counts = Counter(c.paragraph for c in chunks)
+    duplicates = sorted(p for p, n in counts.items() if n > 1)
+    if duplicates:
+        raise ValueError(f"duplicate paragraphs: {duplicates}")
 
     # Embed before touching the database, so an OpenAI error changes nothing.
     vectors = embed_all([embedding_input(c) for c in chunks], embed)
