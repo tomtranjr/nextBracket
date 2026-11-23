@@ -41,5 +41,6 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 # Lets tests do `import app` without installing the project as a package.
 pythonpath = ["."]
-# Fail on Starlette deprecations (e.g. TestClient falling back to httpx) so they cannot return silently.
+# Fail on any Starlette deprecation so none can return silently,
+# e.g. TestClient falling back to httpx when httpx2 is missing (NB-25).
 filterwarnings = ["error::starlette.exceptions.StarletteDeprecationWarning"]
