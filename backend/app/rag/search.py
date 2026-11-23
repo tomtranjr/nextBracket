@@ -25,9 +25,11 @@ class SearchHit:
 
 # plainto_tsquery joins every word with AND (&). A plain question rarely has all its words in
 # one paragraph, so an AND query often finds nothing. Swapping & for | makes it match any word,
-# and ts_rank then puts paragraphs with more and rarer matches first. plainto_tsquery never
-# emits other operators, so the text swap is safe. Title words count more (weight A, see
-# scripts/regulation_schema.sql). Ties sort by paragraph, so the order is stable.
+# and ts_rank then puts paragraphs with more matches first. plainto_tsquery never emits other
+# operators, so the text swap is safe. Title words count more (weight A, see
+# scripts/regulation_schema.sql). ts_rank does not weigh rare words above common ones (no IDF),
+# so "pregnant" (2 chunks) counts no more than "fitness" (347 chunks).
+# Ties sort by paragraph, so the order is stable.
 FULL_TEXT_SQL = """
 WITH q AS (
     SELECT replace(plainto_tsquery('english', %(query)s)::text, '&', '|')::tsquery AS tsq
