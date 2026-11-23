@@ -4,25 +4,21 @@ The unit tests need nothing. The database tests need the compose `db` service. T
 is not reachable, so CI (which has no Postgres) skips them.
 """
 
-import uuid
-from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import psycopg
 import pytest
 
-from app.config import get_settings
+from app.rag.embedding import EMBEDDING_DIM, to_vector_literal
 from scripts.extract_regulation import DEFAULT_OUT
 from scripts.ingest_regulation import (
     DEFAULT_CHUNKS,
-    EMBEDDING_DIM,
     Chunk,
     embed_all,
     embedding_input,
     ingest,
     load_chunks,
-    to_vector_literal,
 )
 
 
@@ -108,30 +104,7 @@ def test_ingest_rejects_duplicate_paragraphs_before_any_sql() -> None:
         ingest(conn, [make_chunk("1.1"), make_chunk("1.2"), make_chunk("1.1")], fake_embed)
 
 
-# Database tests
-
-
-@pytest.fixture
-def conn() -> Iterator[psycopg.Connection[Any]]:
-    """A connection whose tables live in a throwaway schema, so real rows are never touched."""
-    try:
-        connection = psycopg.connect(get_settings().database_url, connect_timeout=2)
-    except psycopg.OperationalError:
-        pytest.skip("Postgres is not running (start it with `docker compose up db`)")
-    schema = f"test_{uuid.uuid4().hex[:8]}"
-    with connection:
-        # The extension lives in public, so the vector type resolves from the test schema too.
-        connection.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public")
-        connection.execute(f"CREATE SCHEMA {schema}")
-        connection.execute(f"SET search_path TO {schema}, public")
-        # Commit the setup, so the teardown rollback undoes only what the test did.
-        connection.commit()
-        try:
-            yield connection
-        finally:
-            connection.rollback()
-            connection.execute(f"DROP SCHEMA {schema} CASCADE")
-            connection.commit()
+# Database tests. The `conn` fixture is in conftest.py, because tests/test_search.py uses it too.
 
 
 def test_ingest_loads_every_committed_chunk(conn: psycopg.Connection[Any]) -> None:
