@@ -5,6 +5,8 @@ description = "PFA scoring and planning for Airmen"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.143.0",
+    "openai>=3.42.1",
+    "psycopg[binary]>=3.3.6",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "uvicorn[standard]>=0.54.0",

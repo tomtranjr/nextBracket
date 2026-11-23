@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     rate_limit_per_ip: int = Field(default=60, ge=0)
     rate_limit_global: int = Field(default=600, ge=0)
 
+    # Postgres with pgvector, which holds the regulation chunks. The default is the local
+    # `db` service in docker-compose.yml. Its password is a local-only value, not a secret.
+    database_url: str = "postgresql://nextbracket:nextbracket@localhost:5432/nextbracket"
+
 
 @lru_cache
 def get_settings() -> Settings:
